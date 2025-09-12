@@ -5,7 +5,8 @@ np_params               ->  , <name>: <type><np_params> | <null>
 block                   ->  <statement> <block> | <null>
 statement               ->  <expression>; | <variable_declaration> | <variable_assign> | <if_statement> | <return_statement>
 variable_declaration    ->  let <name>: <type>= <expression>; | let <name>: <type>; // This is not deterministic
-variable_assign         ->  <name> = <expression>;
+variable_assign         ->  = <expression>;
+lhs_assign              ->  let <name>: <type> | <name>
 return_statement        ->  return <expression>;
 expression              ->  <function_call> | <arithmatic_expression> | <logic_expression> | <literal> | <name>
 function_call           ->  <name>(<tuple>)
@@ -15,7 +16,7 @@ if_statement            ->  if (<expression>) {<block>} <elif_statement>
 elif_statement          ->  else if (<expression>) {<block>} <elif_statement> | else {<block>} | <null>
 arithmatic_expression   ->  TODO
 logic_expression        ->  TODO
+statement               ->  <name> 
 
-
-nn means non-null
+np means non principal
 currently, this grammar encounters issues when coming across a line starting with <name>, where it cannot tell if this is a variable assign statement or an expression statement
