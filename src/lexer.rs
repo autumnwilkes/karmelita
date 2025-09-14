@@ -1,5 +1,4 @@
-pub struct Tokens {}
-
+#[allow(unused)]
 pub enum Token {
     Dot,
     DotDot,
@@ -26,8 +25,9 @@ pub enum Token {
     BAndOp,
     BOrOp,
     BXorOp,
-    BLeftOp,
-    BRightOp,
+
+    ShLeftOp,
+    ShRightOp,
 
     AndOp,
     OrOp,
@@ -55,8 +55,8 @@ pub enum Token {
     AndEq,
     OrEq,
     XorEq,
-    BLeftEq,
-    BRightEq,
+    ShLeftEq,
+    ShRightEq,
 
     OParen,
     CParen,
@@ -79,10 +79,33 @@ pub enum Token {
     Ident { name: String },
 }
 
-impl Iterator for Tokens {
+pub struct Tokens<'a> {
+    buff: std::str::Chars<'a>,
+}
+
+impl<'a> Tokens<'a> {
+    fn new(buff: &'a str) -> Self {
+        Self { buff: buff.chars() }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.buff.clone().next()
+    }
+
+    fn peek_nth(&self, n: usize) -> Option<char> {
+        let mut tmp = self.buff.clone();
+        for _ in 0..n - 1 {
+            tmp.next();
+        }
+        tmp.next()
+    }
+}
+impl Iterator for Tokens<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        match self.buff.next().unwrap_or(0.into()) {
+            _ => todo!(),
+        }
     }
 }
