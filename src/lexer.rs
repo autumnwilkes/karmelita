@@ -1,7 +1,6 @@
 #[allow(unused)]
 pub enum Token {
     Dot,
-    DotDot,
     Comma,
     Question,
     Colon,
@@ -100,11 +99,47 @@ impl<'a> Tokens<'a> {
         tmp.next()
     }
 }
+
+macro_rules! token {
+    ($i:ident) => {
+        Some(Token::$i)
+    };
+}
+
+macro_rules! str_match {
+    ($l:literal) => {
+        $l[0] if self.peek() == $l[1]
+    };
+}
+
 impl Iterator for Tokens<'_> {
     type Item = Token;
 
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Option<Token> {
+        println!();
         match self.buff.next().unwrap_or(0.into()) {
+            '\0' => None,
+            '\n' | ' ' | '\t' => self.next(),
+            '.' => token!(Dot),
+            ',' => token!(Comma),
+            '?' => token!(Question),
+            ':' => token!(Colon),
+            ';' => token!(Semicolon),
+            '_' => token!(Wild),
+            '*' => token!(Star),
+            '#' => token!(Hashtag),
+            '@' => token!(At),
+            '|' => token!(Pipe),
+            '!' => token!(NotOp),
+            '\\' => token!(Backslash),
+            '\'' => token!(SQuote),
+            '"' => token!(DQuote),
+            str_match!("->") => token!(SmArrow),
+            '-' if self.peek() == '>' => token!(SmArrow),
+            '=' if self.peek() == '>' => token!(LgArrow),
+            '+' if self.peek() == '+' => token!(PlusOneOp),
+            '-' if self.peek() == '-' => token!(MinusOneOp),
+
             _ => todo!(),
         }
     }
