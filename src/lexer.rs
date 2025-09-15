@@ -106,12 +106,6 @@ macro_rules! token {
     };
 }
 
-macro_rules! str_match {
-    ($l:literal) => {
-        $l[0] if self.peek() == $l[1]
-    };
-}
-
 impl Iterator for Tokens<'_> {
     type Item = Token;
 
@@ -134,7 +128,6 @@ impl Iterator for Tokens<'_> {
             '\\' => token!(Backslash),
             '\'' => token!(SQuote),
             '"' => token!(DQuote),
-            str_match!("->") => token!(SmArrow),
             '-' if self.peek() == '>' => token!(SmArrow),
             '=' if self.peek() == '>' => token!(LgArrow),
             '+' if self.peek() == '+' => token!(PlusOneOp),
