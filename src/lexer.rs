@@ -22,7 +22,6 @@ pub enum Token {
     MinusOneOp,
 
     BAndOp,
-    BOrOp,
     BXorOp,
 
     ShLeftOp,
@@ -72,9 +71,9 @@ pub enum Token {
     Let,
 
     BoolLiteral { val: bool },
-    IntLiteral { val: i32 },
+    IntLiteral { val: usize },
     CharLiteral { val: char },
-    StringLiteral { val: String }, // &str? something else?
+    StringLiteral { val: String },
     Ident { name: String },
 }
 
@@ -91,6 +90,33 @@ impl<'a> Tokens<'a> {
         self.buff.clone().next()
     }
 
+    fn matches(&mut self, other: &str) -> bool {
+        let mut tmp = self.buff.clone();
+        let mut buff: String = String::new();
+        for i in 0..other.len() {
+            match tmp.next() {
+                Some(c) => buff.insert(i, c),
+                None => return false,
+            }
+        }
+        if buff == other {
+            for _ in 0..other.len() {
+                self.buff.next();
+            }
+        }
+        buff == other
+    }
+
+    fn match_char(&mut self, other: char) -> bool {
+        let mut tmp = self.buff.clone();
+        if tmp.next() == Some(other) {
+            self.buff.next();
+            true
+        } else {
+            false
+        }
+    }
+
     fn peek_nth(&self, n: usize) -> Option<char> {
         let mut tmp = self.buff.clone();
         for _ in 0..n - 1 {
@@ -100,40 +126,118 @@ impl<'a> Tokens<'a> {
     }
 }
 
-macro_rules! token {
-    ($i:ident) => {
-        Some(Token::$i)
-    };
-}
-
 impl Iterator for Tokens<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
-        println!();
-        match self.buff.next().unwrap_or(0.into()) {
-            '\0' => None,
-            '\n' | ' ' | '\t' => self.next(),
-            '.' => token!(Dot),
-            ',' => token!(Comma),
-            '?' => token!(Question),
-            ':' => token!(Colon),
-            ';' => token!(Semicolon),
-            '_' => token!(Wild),
-            '*' => token!(Star),
-            '#' => token!(Hashtag),
-            '@' => token!(At),
-            '|' => token!(Pipe),
-            '!' => token!(NotOp),
-            '\\' => token!(Backslash),
-            '\'' => token!(SQuote),
-            '"' => token!(DQuote),
-            '-' if self.peek() == '>' => token!(SmArrow),
-            '=' if self.peek() == '>' => token!(LgArrow),
-            '+' if self.peek() == '+' => token!(PlusOneOp),
-            '-' if self.peek() == '-' => token!(MinusOneOp),
+        Some(match self.buff.next().unwrap_or(0.into()) {
+            '\0' => return None,
+            '\n' | ' ' | '\t' => self.next()?,
 
-            _ => todo!(),
-        }
+            '>' if self.matches(">=") => Token::ShRightEq,
+            '<' if self.matches("<=") => Token::ShLeftEq,
+            '>' if self.match_char('>') => Token::ShRightOp,
+            '<' if self.match_char('<') => Token::ShLeftOp,
+            '-' if self.match_char('>') => Token::SmArrow,
+            '=' if self.match_char('>') => Token::LgArrow,
+            '+' if self.match_char('+') => Token::PlusOneOp,
+            '-' if self.match_char('-') => Token::MinusOneOp,
+            '&' if self.match_char('&') => Token::AndOp,
+            '|' if self.match_char('|') => Token::OrOp,
+            '=' if self.match_char('=') => Token::EqCmp,
+            '!' if self.match_char('=') => Token::NeqCmp,
+            '<' if self.match_char('=') => Token::LeCmp,
+            '>' if self.match_char('=') => Token::GeCmp,
+            '+' if self.match_char('=') => Token::PlusEq,
+            '-' if self.match_char('=') => Token::MinusOp,
+            '%' if self.match_char('=') => Token::ModEq,
+            '*' if self.match_char('=') => Token::TimesEq,
+            '/' if self.match_char('=') => Token::DivEq,
+            '&' if self.match_char('=') => Token::AndEq,
+            '|' if self.match_char('=') => Token::OrEq,
+            '^' if self.match_char('=') => Token::XorEq,
+
+            '.' => Token::Dot,
+            ',' => Token::Comma,
+            '?' => Token::Question,
+            ':' => Token::Colon,
+            ';' => Token::Semicolon,
+            '_' => Token::Wild,
+            '*' => Token::Star,
+            '#' => Token::Hashtag,
+            '@' => Token::At,
+            '|' => Token::Pipe,
+            '!' => Token::NotOp,
+            '\\' => Token::Backslash,
+            '\'' => Token::SQuote,
+            '"' => Token::DQuote,
+            '&' => Token::BAndOp,
+            '^' => Token::XorOp,
+            '%' => Token::ModOp,
+            '/' => Token::DivOp,
+            '+' => Token::PlusOp,
+            '-' => Token::MinusOp,
+            '<' => Token::LtCmp,
+            '>' => Token::GtCmp,
+            '=' => Token::Eq,
+            '(' => Token::OParen,
+            ')' => Token::CParen,
+            '{' => Token::OCurly,
+            '}' => Token::CCurly,
+            '[' => Token::OBracket,
+            ']' => Token::CBracket,
+
+            n @ ('a'..='z' | 'A'..='Z') => {
+                let mut buff: String = String::new();
+                buff.push(n);
+
+                while matches!(self.peek(), Some('a'..='z' | 'A'..='Z' | '0'..='9' | '_')) {
+                    buff.push(self.buff.next().unwrap());
+                }
+                match &*buff {
+                    "if" => Token::If,
+                    "fn" => Token::Fn,
+                    "else" => Token::Else,
+                    "for" => Token::For,
+                    "let" => Token::Let,
+                    "true" => Token::BoolLiteral { val: true },
+                    "false" => Token::BoolLiteral { val: false },
+                    name => Token::Ident {
+                        name: name.to_string(),
+                    },
+                }
+            }
+            n @ '0'..='9' => {
+                let mut num: String = String::new();
+                num.push(n);
+                let base = match self.peek() {
+                    Some('x') if n == '0' => {
+                        self.buff.next();
+                        16
+                    }
+                    Some('b') if n == '0' => {
+                        self.buff.next();
+                        2
+                    }
+                    Some('o') if n == '0' => {
+                        self.buff.next();
+                        8
+                    }
+                    _ => {
+                        num.push(n);
+                        10
+                    }
+                };
+                while let Some('0'..='9' | 'a'..='f') = self.peek() {
+                    num.push(self.buff.next().unwrap());
+                }
+                let t = usize::from_str_radix(&*num, base);
+                match t {
+                    Ok(n) => Token::IntLiteral { val: n },
+                    Err(e) => todo!("no error handling for lexer number interpretation"),
+                }
+            }
+            n => panic!("Unrecognized character in program"),
+        })
     }
 }
