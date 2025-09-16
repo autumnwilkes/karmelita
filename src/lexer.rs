@@ -116,14 +116,6 @@ impl<'a> Tokens<'a> {
             false
         }
     }
-
-    fn peek_nth(&self, n: usize) -> Option<char> {
-        let mut tmp = self.buff.clone();
-        for _ in 0..n - 1 {
-            tmp.next();
-        }
-        tmp.next()
-    }
 }
 
 impl Iterator for Tokens<'_> {
@@ -170,7 +162,6 @@ impl Iterator for Tokens<'_> {
             '!' => Token::NotOp,
             '\\' => Token::Backslash,
             '\'' => Token::SQuote,
-            '"' => Token::DQuote,
             '&' => Token::BAndOp,
             '^' => Token::XorOp,
             '%' => Token::ModOp,
@@ -186,6 +177,19 @@ impl Iterator for Tokens<'_> {
             '}' => Token::CCurly,
             '[' => Token::OBracket,
             ']' => Token::CBracket,
+
+            '"' => {
+                //TODO: this is being done awfully and has no handling for open quotes without
+                //closing them
+                let mut buff = String::new();
+                while let Some(char) = self.buff.next() {
+                    if char == '"' {
+                        break;
+                    }
+                    buff.push(char);
+                }
+                Token::StringLiteral { val: buff }
+            }
 
             n @ ('a'..='z' | 'A'..='Z') => {
                 let mut buff: String = String::new();
