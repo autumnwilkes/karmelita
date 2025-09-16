@@ -1,3 +1,4 @@
+#[derive(PartialEq)]
 pub enum Token {
     Dot,
     Comma,
@@ -149,7 +150,6 @@ impl Iterator for Tokens<'_> {
             '?' => Token::Question,
             ':' => Token::Colon,
             ';' => Token::Semicolon,
-            '_' => Token::Wild,
             '*' => Token::Star,
             '#' => Token::Hashtag,
             '@' => Token::At,
@@ -196,7 +196,7 @@ impl Iterator for Tokens<'_> {
                 Token::StringLiteral { val: buff }
             }
 
-            n @ ('a'..='z' | 'A'..='Z') => {
+            n @ ('a'..='z' | 'A'..='Z' | '_') => {
                 let mut buff: String = String::new();
                 buff.push(n);
 

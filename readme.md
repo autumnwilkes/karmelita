@@ -1,3 +1,7 @@
+## Notes
+
+Currently not working on any sort of error handling; instead, the program will simply panic whenever anything goes wrong </3
+
 ## Organizational plans
 
 Lexer produces a `TokenStream`, which implements `Iterator`, and which gives the next token when called.
@@ -8,8 +12,8 @@ It should probably count separate symbol patterns together, as it sounds really 
 
 How should ambiguity around certain tokens (e.g. identifiers at the start of statements as parts of an expression statement or an assignment?) be dealt with by the parser? Does it need to have some sort of "uncertain" state, where it needs to look ahead to figure out if the identifier is part of an assignment or an expression?
 
-foo (state = `statement`) -> state = `identifier`
-= (state = `identifier`) -> state = `rhs_assign`
-. (state = `identifier`) -> state = `method`
+- foo (state = `statement`) -> state = `identifier`
+- = (state = `identifier`) -> state = `rhs_assign`
+- . (state = `identifier`) -> state = `method`
 
-- (state = `identifier`) -> state = `add(identifier, _)`
+- - (state = `identifier`) -> state = `add(identifier, _)`
