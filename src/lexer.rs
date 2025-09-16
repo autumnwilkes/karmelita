@@ -1,4 +1,3 @@
-#[allow(unused)]
 pub enum Token {
     Dot,
     Comma,
@@ -11,8 +10,6 @@ pub enum Token {
     At,
     Pipe,
     Backslash,
-    SQuote,
-    DQuote,
 
     SmArrow,
     LgArrow,
@@ -22,7 +19,6 @@ pub enum Token {
     MinusOneOp,
 
     BAndOp,
-    BXorOp,
 
     ShLeftOp,
     ShRightOp,
@@ -122,8 +118,7 @@ impl Iterator for Tokens<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
-        Some(match self.buff.next().unwrap_or(0.into()) {
-            '\0' => return None,
+        Some(match self.buff.next()? {
             '\n' | ' ' | '\t' => self.next()?,
 
             '>' if self.matches(">=") => Token::ShRightEq,
@@ -141,7 +136,7 @@ impl Iterator for Tokens<'_> {
             '<' if self.match_char('=') => Token::LeCmp,
             '>' if self.match_char('=') => Token::GeCmp,
             '+' if self.match_char('=') => Token::PlusEq,
-            '-' if self.match_char('=') => Token::MinusOp,
+            '-' if self.match_char('=') => Token::MinusEq,
             '%' if self.match_char('=') => Token::ModEq,
             '*' if self.match_char('=') => Token::TimesEq,
             '/' if self.match_char('=') => Token::DivEq,
@@ -161,7 +156,6 @@ impl Iterator for Tokens<'_> {
             '|' => Token::Pipe,
             '!' => Token::NotOp,
             '\\' => Token::Backslash,
-            '\'' => Token::SQuote,
             '&' => Token::BAndOp,
             '^' => Token::XorOp,
             '%' => Token::ModOp,
@@ -177,6 +171,17 @@ impl Iterator for Tokens<'_> {
             '}' => Token::CCurly,
             '[' => Token::OBracket,
             ']' => Token::CBracket,
+
+            '\'' => {
+                let next = self.buff.next();
+                if self.buff.next() != Some('\'') {
+                    panic!("character without ending single quote")
+                }
+                match next {
+                    Some(char) => Token::CharLiteral { val: char },
+                    None => panic!("\' at the end of program"),
+                }
+            }
 
             '"' => {
                 //TODO: this is being done awfully and has no handling for open quotes without
