@@ -1,6 +1,8 @@
 use crate::lexer::{Token, Tokens};
 use std::rc::Rc;
 
+enum ParseError {}
+
 struct Function {
     id: String,
     params: Vec<Variable>,
@@ -31,7 +33,7 @@ enum Statement {
 struct Expression {}
 
 enum AssignLhs {
-    Declaration(String, Type), // okay yeah types should NOT be strings
+    Declaration(String, Type),
     Reassign(Rc<Variable>),
 }
 
@@ -78,4 +80,21 @@ fn parse(mut tokens: Tokens) {
     }
 }
 
-fn parse_variable(tokens: &mut Tokens) {}
+fn parse_variable(name: String, tokens: &mut Tokens) -> Option<Variable> {
+    todo!()
+}
+
+fn parse_type(tokens: &mut Tokens) -> Option<Type> {
+    match tokens.next() {
+        Some(Token::Ident { name }) => Some(Type::UserDefined(name)),
+        _ => todo!(),
+    }
+}
+
+fn parse_block() -> Result<Block, ParseError> {
+    todo!()
+}
+
+fn parse_statement() -> () {}
+
+fn parse_expression() -> () {}

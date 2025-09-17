@@ -1,4 +1,4 @@
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum Token {
     Dot,
     Comma,
@@ -74,16 +74,28 @@ pub enum Token {
     Ident { name: String },
 }
 
+#[derive(Clone)]
 pub struct Tokens<'a> {
     buff: std::str::Chars<'a>,
+    token: Option<Token>,
 }
 
 impl<'a> Tokens<'a> {
     fn new(buff: &'a str) -> Self {
-        Self { buff: buff.chars() }
+        Self {
+            buff: buff.chars(),
+            token: None,
+        }
     }
 
-    fn peek(&self) -> Option<char> {
+    pub fn peek(&self) -> Option<Token> {
+        if let Some(token) = &self.token {
+            return Some(token.clone());
+        }
+        self.clone().next()
+    }
+
+    fn peek_char(&self) -> Option<char> {
         self.buff.clone().next()
     }
 
@@ -119,6 +131,10 @@ impl Iterator for Tokens<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
+        if let Some(token) = self.token {
+            self.token = None;
+            return Some(token);
+        }
         Some(match self.buff.next()? {
             '\n' | ' ' | '\t' => self.next()?,
 
@@ -200,7 +216,10 @@ impl Iterator for Tokens<'_> {
                 let mut buff: String = String::new();
                 buff.push(n);
 
-                while matches!(self.peek(), Some('a'..='z' | 'A'..='Z' | '0'..='9' | '_')) {
+                while matches!(
+                    self.peek_char(),
+                    Some('a'..='z' | 'A'..='Z' | '0'..='9' | '_')
+                ) {
                     buff.push(self.buff.next().unwrap());
                 }
                 match &*buff {
@@ -219,7 +238,7 @@ impl Iterator for Tokens<'_> {
             n @ '0'..='9' => {
                 let mut num: String = String::new();
                 num.push(n);
-                let base = match self.peek() {
+                let base = match self.peek_char() {
                     Some('x') if n == '0' => {
                         self.buff.next();
                         16
@@ -237,7 +256,7 @@ impl Iterator for Tokens<'_> {
                         10
                     }
                 };
-                while let Some('0'..='9' | 'a'..='f') = self.peek() {
+                while let Some('0'..='9' | 'a'..='f') = self.peek_char() {
                     num.push(self.buff.next().unwrap());
                 }
                 let t = usize::from_str_radix(&*num, base);
