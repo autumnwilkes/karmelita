@@ -17,3 +17,47 @@ How should ambiguity around certain tokens (e.g. identifiers at the start of sta
 - . (state = `identifier`) -> state = `method`
 
 - - (state = `identifier`) -> state = `add(identifier, _)`
+
+## Abstract Syntax Tree
+
+Function := {
+name: String,
+params: Vec<(String, Type)>
+return: Type
+code: Vec\<Statement\>
+}
+
+Type :=
+defined(String) |
+ptr(Type) |
+PrimitiveType |
+Tuple(Vec\<Type\>) |
+Array(Type, usize)
+
+PrimitiveType :=
+integer |
+bool |
+string |
+char |
+float
+
+Statement :=
+Expression(Expression) |
+Return(Expression) |
+If(Expression, Vec\<Statement\>, Option\<ElseStatement\>) |
+Assignment(Lhs, Expression) |
+Declaration(Variable)
+
+ElseStatement :=
+Elif(Expression, Vec\<Statement\>, Option\<ElseStatement\>) |
+Else(Vec\Statement\>)
+
+Lhs :=
+Declaration(Variable) |
+Assign(VarOrField)
+
+VarOrField :=
+Var(Variable) |
+Index(Variable, usize) |
+Field(Variable, Variable) | // This seems wrong? but idk what would be better
+TupleIdx(Variable, usize) // Does this need to be different from Index?

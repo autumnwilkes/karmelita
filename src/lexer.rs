@@ -5,7 +5,6 @@ pub enum Token {
     Question,
     Colon,
     Semicolon,
-    Wild,
     Star,
     Hashtag,
     At,
@@ -75,13 +74,14 @@ pub enum Token {
 }
 
 #[derive(Clone)]
-pub struct Tokens<'a> {
-    buff: std::str::Chars<'a>,
+pub struct Tokens {
+    buff: std::str::Chars<'static>,
     token: Option<Token>,
 }
 
-impl<'a> Tokens<'a> {
-    fn new(buff: &'a str) -> Self {
+impl Tokens {
+    fn new(buff: &'static str) -> Self {
+        let x: String;
         Self {
             buff: buff.chars(),
             token: None,
@@ -127,11 +127,11 @@ impl<'a> Tokens<'a> {
     }
 }
 
-impl Iterator for Tokens<'_> {
+impl Iterator for Tokens {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
-        if let Some(token) = self.token {
+        if let Some(token) = self.token.clone() {
             self.token = None;
             return Some(token);
         }

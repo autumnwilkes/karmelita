@@ -50,6 +50,22 @@ enum Type {
     Int, // and more...
 }
 
+struct Parser {
+    tokens: Tokens,
+
+    cur_token: Option<Token>,
+    next_token: Option<Token>,
+}
+
+impl Parser {
+    fn increment_iter(&mut self) -> Option<Token> {
+        let tmp = self.cur_token.clone();
+        self.cur_token = self.next_token.clone();
+        self.next_token = self.tokens.next();
+        tmp
+    }
+}
+
 fn parse(mut tokens: Tokens) {
     loop {
         match tokens.next() {
@@ -91,10 +107,14 @@ fn parse_type(tokens: &mut Tokens) -> Option<Type> {
     }
 }
 
-fn parse_block() -> Result<Block, ParseError> {
+fn parse_block() -> Option<Block> {
     todo!()
 }
 
-fn parse_statement() -> () {}
+fn parse_statement() -> Option<Statement> {
+    todo!()
+}
 
-fn parse_expression() -> () {}
+fn parse_expression() -> Option<Expression> {
+    todo!()
+}
