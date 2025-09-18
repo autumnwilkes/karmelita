@@ -15,49 +15,89 @@ How should ambiguity around certain tokens (e.g. identifiers at the start of sta
 - foo (state = `statement`) -> state = `identifier`
 - = (state = `identifier`) -> state = `rhs_assign`
 - . (state = `identifier`) -> state = `method`
+- \+ (state = `identifier`) -> state = `add(identifier, _)`
+  (not this)
 
-- - (state = `identifier`) -> state = `add(identifier, _)`
+Instead, having some way of "peeking" at the next element of the iter, or reading the next token without consuming it, solves this issue;
+
+- foo (state = `statement`) -> match peek()
+- - = -> `statement = assign(foo, parse_expression()`) & `state = expression`
+- - . -> state = `method` // here, the statement is still unknown...
+- - - -> `statement = plus(foo, parse_expression())` & `state = expression`
+
+How to handle lines starting with methods or fields?
+
+- 2 depth peeking, followed by a `parse_field()` call?
+- Deeper peeking doesn't solve this, as depth is not limited\* for this
 
 ## Abstract Syntax Tree
 
 Function := {
+
 name: String,
+
 params: Vec<(String, Type)>
+
 return: Type
+
 code: Vec\<Statement\>
+
 }
 
 Type :=
+
 defined(String) |
+
 ptr(Type) |
+
 PrimitiveType |
+
 Tuple(Vec\<Type\>) |
+
 Array(Type, usize)
 
 PrimitiveType :=
+
 integer |
+
 bool |
+
 string |
+
 char |
+
 float
 
 Statement :=
+
 Expression(Expression) |
+
 Return(Expression) |
+
 If(Expression, Vec\<Statement\>, Option\<ElseStatement\>) |
+
 Assignment(Lhs, Expression) |
+
 Declaration(Variable)
 
 ElseStatement :=
+
 Elif(Expression, Vec\<Statement\>, Option\<ElseStatement\>) |
-Else(Vec\Statement\>)
+
+Else(Vec\<Statement\>)
 
 Lhs :=
+
 Declaration(Variable) |
+
 Assign(VarOrField)
 
 VarOrField :=
+
 Var(Variable) |
+
 Index(Variable, usize) |
+
 Field(Variable, Variable) | // This seems wrong? but idk what would be better
+
 TupleIdx(Variable, usize) // Does this need to be different from Index?
