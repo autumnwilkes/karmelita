@@ -64,57 +64,93 @@ impl Parser {
         self.next_token = self.tokens.next();
         tmp
     }
-}
 
-fn parse(mut tokens: Tokens) {
-    loop {
-        match tokens.next() {
-            Some(Token::Fn) => {
-                if let Some(Token::Ident { name: id }) = tokens.next() {
-                    if Some(Token::OParen) != tokens.next() {
-                        panic!("Function defined without params");
-                    }
-                    let params: Vec<Variable> = Vec::new();
-                    loop {
-                        let next = tokens.next();
-                        if next == Some(Token::CParen) {
-                            break;
+    fn parse(mut tokens: Tokens) {
+        loop {
+            match tokens.next() {
+                Some(Token::Fn) => {
+                    if let Some(Token::Ident { name: id }) = tokens.next() {
+                        if Some(Token::OParen) != tokens.next() {
+                            panic!("Function defined without params");
                         }
-                        if let Some(Token::Ident { name: param_id }) = next {
-                            if Some(Token::Colon) != tokens.next() {
+                        let params: Vec<Variable> = Vec::new();
+                        loop {
+                            let next = tokens.next();
+                            if next == Some(Token::CParen) {
+                                break;
+                            }
+                            if let Some(Token::Ident { name: param_id }) = next {
+                                if Some(Token::Colon) != tokens.next() {
+                                    panic!("function params defined incorrectly");
+                                }
+                                // if let Some(Token::Ident {})
+                            } else {
                                 panic!("function params defined incorrectly");
                             }
-                            // if let Some(Token::Ident {})
-                        } else {
-                            panic!("function params defined incorrectly");
                         }
                     }
                 }
+                _ => {}
             }
-            _ => {}
         }
     }
-}
 
-fn parse_variable(name: String, tokens: &mut Tokens) -> Option<Variable> {
-    todo!()
-}
-
-fn parse_type(tokens: &mut Tokens) -> Option<Type> {
-    match tokens.next() {
-        Some(Token::Ident { name }) => Some(Type::UserDefined(name)),
-        _ => todo!(),
+    fn parse_variable(name: String, tokens: &mut Tokens) -> Option<Variable> {
+        todo!()
     }
-}
 
-fn parse_block() -> Option<Block> {
-    todo!()
-}
+    fn parse_type(tokens: &mut Tokens) -> Option<Type> {
+        match tokens.next() {
+            Some(Token::Ident { name }) => Some(Type::UserDefined(name)),
+            _ => todo!(),
+        }
+    }
 
-fn parse_statement() -> Option<Statement> {
-    todo!()
-}
+    fn parse_block(&mut self) -> Option<Block> {
+        let mut block: Block = Vec::new();
+        while self.cur_token != Some(Token::CCurly) {
+            if self.cur_token == None {
+                return None;
+            }
+            let statement = self.parse_statement();
+            if let Some(s) = statement {
+                block.push(s);
+            }
+        }
+        Some(block)
+    }
 
-fn parse_expression() -> Option<Expression> {
-    todo!()
+    fn parse_statement(&mut self) -> Option<Statement> {
+        match self.cur_token {
+            None => None,
+            Some(Token::Ident(_)) => {
+                todo!()
+            }
+            Some(Token::IntLiteral(_))
+            | Some(Token::BoolLiteral(_))
+            | Some(Token::CharLiteral(_))
+            | Some(Token::StringLiteral(_)) => {
+                if let Some(expr) = self.parse_expression() {
+                    if Some(Token::Semicolon) != self.cur_token {
+                        None
+                    } else {
+                        Some(Statement::Expression(expr))
+                    }
+                } else {
+                    None
+                }
+            }
+            Some(Token::If) => {
+                todo!()
+            }
+            Some(Token::Return) => {
+                todo!()
+            }
+            _ => todo!(),
+        }
+    }
+
+    fn parse_expression(&mut self) -> Option<Expression> {
+        todo!()
+    }
 }

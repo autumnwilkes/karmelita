@@ -65,22 +65,23 @@ pub enum Token {
     Fn,
     For,
     Let,
+    Return,
 
-    BoolLiteral { val: bool },
-    IntLiteral { val: usize },
-    CharLiteral { val: char },
-    StringLiteral { val: String },
-    Ident { name: String },
+    BoolLiteral(bool),
+    IntLiteral(usize),
+    CharLiteral(char),
+    StringLiteral(String),
+    Ident(String),
 }
 
 #[derive(Clone)]
-pub struct Tokens {
-    buff: std::str::Chars<'static>,
+pub struct Tokens<'a> {
+    buff: std::str::Chars<'a>,
     token: Option<Token>,
 }
 
-impl Tokens {
-    fn new(buff: &'static str) -> Self {
+impl<'a> Tokens<'a> {
+    pub fn new(buff: &'a str) -> Self {
         let x: String;
         Self {
             buff: buff.chars(),
@@ -194,7 +195,7 @@ impl Iterator for Tokens {
                     panic!("character without ending single quote")
                 }
                 match next {
-                    Some(char) => Token::CharLiteral { val: char },
+                    Some(char) => Token::CharLiteral(char),
                     None => panic!("\' at the end of program"),
                 }
             }
@@ -209,7 +210,7 @@ impl Iterator for Tokens {
                     }
                     buff.push(char);
                 }
-                Token::StringLiteral { val: buff }
+                Token::StringLiteral(buff)
             }
 
             n @ ('a'..='z' | 'A'..='Z' | '_') => {
@@ -228,11 +229,10 @@ impl Iterator for Tokens {
                     "else" => Token::Else,
                     "for" => Token::For,
                     "let" => Token::Let,
-                    "true" => Token::BoolLiteral { val: true },
-                    "false" => Token::BoolLiteral { val: false },
-                    name => Token::Ident {
-                        name: name.to_string(),
-                    },
+                    "return" => Token::Return,
+                    "true" => Token::BoolLiteral(true),
+                    "false" => Token::BoolLiteral(false),
+                    name => Token::Ident(name.to_string()),
                 }
             }
             n @ '0'..='9' => {
@@ -261,7 +261,7 @@ impl Iterator for Tokens {
                 }
                 let t = usize::from_str_radix(&*num, base);
                 match t {
-                    Ok(n) => Token::IntLiteral { val: n },
+                    Ok(n) => Token::IntLiteral(n),
                     Err(e) => todo!("no error handling for lexer number interpretation"),
                 }
             }
