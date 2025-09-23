@@ -28,6 +28,11 @@ enum Statement {
     },
     Expression(Expression),
     Return(Expression),
+    Declaration {
+        name: String,
+        var_type: Type,
+        rhs: Option<Expression>,
+    },
 }
 
 struct Expression {}
@@ -50,14 +55,14 @@ enum Type {
     Int, // and more...
 }
 
-struct Parser {
-    tokens: Tokens,
+struct Parser<'a> {
+    tokens: Tokens<'a>,
 
     cur_token: Option<Token>,
     next_token: Option<Token>,
 }
 
-impl Parser {
+impl Parser<'_> {
     fn increment_iter(&mut self) -> Option<Token> {
         let tmp = self.cur_token.clone();
         self.cur_token = self.next_token.clone();
@@ -69,7 +74,7 @@ impl Parser {
         loop {
             match tokens.next() {
                 Some(Token::Fn) => {
-                    if let Some(Token::Ident { name: id }) = tokens.next() {
+                    if let Some(Token::Ident(id)) = tokens.next() {
                         if Some(Token::OParen) != tokens.next() {
                             panic!("Function defined without params");
                         }
@@ -79,7 +84,7 @@ impl Parser {
                             if next == Some(Token::CParen) {
                                 break;
                             }
-                            if let Some(Token::Ident { name: param_id }) = next {
+                            if let Some(Token::Ident(param_id)) = next {
                                 if Some(Token::Colon) != tokens.next() {
                                     panic!("function params defined incorrectly");
                                 }
@@ -99,9 +104,9 @@ impl Parser {
         todo!()
     }
 
-    fn parse_type(tokens: &mut Tokens) -> Option<Type> {
-        match tokens.next() {
-            Some(Token::Ident { name }) => Some(Type::UserDefined(name)),
+    fn parse_type(&mut self) -> Option<Type> {
+        match self.next() {
+            Some(Token::Ident(id)) => Some(Type::UserDefined(id)),
             _ => todo!(),
         }
     }
@@ -124,33 +129,96 @@ impl Parser {
         match self.cur_token {
             None => None,
             Some(Token::Ident(_)) => {
-                todo!()
+                if self.next_token == Some(Token::Dot) {
+                    if let Some(field) = self.parse_field() {
+                        todo!();
+                    }
+                }
+                None
             }
             Some(Token::IntLiteral(_))
             | Some(Token::BoolLiteral(_))
             | Some(Token::CharLiteral(_))
             | Some(Token::StringLiteral(_)) => {
                 if let Some(expr) = self.parse_expression() {
-                    if Some(Token::Semicolon) != self.cur_token {
-                        None
-                    } else {
-                        Some(Statement::Expression(expr))
+                    if self.cur_token == Some(Token::Semicolon) {
+                        return Some(Statement::Expression(expr));
                     }
+                }
+                None
+            }
+            Some(Token::Let) => {
+                self.next();
+                if let Some(Token::Ident(id)) = self.next() {
+                    if self.next() != Some(Token::Colon) {
+                        return None;
+                    }
+                    if let Some(var_type) = self.parse_type() {
+                        return match self.next() {
+                            Some(Token::Semicolon) => Some(Statement::Declaration {
+                                name: id,
+                                var_type,
+                                rhs: None,
+                            }),
+                            Some(Token::Eq) => {
+                                if let Some(expr) = self.parse_expression()
+                                    && self.next() == Some(Token::Semicolon)
+                                {
+                                    Some(Statement::Declaration {
+                                        name: id,
+                                        var_type,
+                                        rhs: Some(expr),
+                                    })
+                                } else {
+                                    None
+                                }
+                            }
+                            _ => None,
+                        };
+                    }
+                }
+                None
+            }
+            Some(Token::If) => {
+                self.next();
+                if let Some(cond) = self.parse_expression()
+                    && self.cur_token == Some(Token::OCurly)
+                {
+                    if let Some(block) = self.parse_block() {
+                        return Some(Statement::If {
+                            condition: cond,
+                            contents: block,
+                        });
+                    }
+                }
+                None
+            }
+            Some(Token::Return) => {
+                self.next();
+                if let Some(ret) = self.parse_expression() {
+                    Some(Statement::Return(ret))
                 } else {
                     None
                 }
             }
-            Some(Token::If) => {
-                todo!()
-            }
-            Some(Token::Return) => {
-                todo!()
-            }
-            _ => todo!(),
+            _ => None,
         }
     }
 
+    fn next(&mut self) -> Option<Token> {
+        let tmp = self.cur_token.clone();
+        self.cur_token = self.next_token.clone();
+        self.next_token = self.tokens.next();
+        tmp
+    }
+
+    // Finishes evaluation when it meets an unexpected token,
+    // returns None if the tokens up to that point do not form an expression
     fn parse_expression(&mut self) -> Option<Expression> {
+        todo!()
+    }
+
+    fn parse_field(&mut self) -> Option<()> {
         todo!()
     }
 }

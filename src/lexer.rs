@@ -128,7 +128,7 @@ impl<'a> Tokens<'a> {
     }
 }
 
-impl Iterator for Tokens {
+impl Iterator for Tokens<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
