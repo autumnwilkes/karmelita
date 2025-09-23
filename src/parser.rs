@@ -70,38 +70,62 @@ impl Parser<'_> {
         tmp
     }
 
-    fn parse(mut tokens: Tokens) {
+    fn parse(&mut self) {
         loop {
-            match tokens.next() {
-                Some(Token::Fn) => {
-                    if let Some(Token::Ident(id)) = tokens.next() {
-                        if Some(Token::OParen) != tokens.next() {
-                            panic!("Function defined without params");
-                        }
-                        let params: Vec<Variable> = Vec::new();
-                        loop {
-                            let next = tokens.next();
-                            if next == Some(Token::CParen) {
-                                break;
-                            }
-                            if let Some(Token::Ident(param_id)) = next {
-                                if Some(Token::Colon) != tokens.next() {
-                                    panic!("function params defined incorrectly");
-                                }
-                                // if let Some(Token::Ident {})
-                            } else {
-                                panic!("function params defined incorrectly");
-                            }
-                        }
-                    }
-                }
+            match self.next() {
+                Some(Token::Fn) => {}
                 _ => {}
             }
         }
     }
 
-    fn parse_variable(name: String, tokens: &mut Tokens) -> Option<Variable> {
-        todo!()
+    fn parse_function(&mut self) -> Option<Function> {
+        let Some(Token::Ident(id)) = self.next() else {
+            return None;
+        };
+        if self.next() != Some(Token::OParen) {
+            return None;
+        }
+        let mut params: Vec<Variable> = Vec::new();
+        loop {
+            if self.cur_token == Some(Token::CParen) {
+                break;
+            }
+            let Some(Token::Ident(param_id)) = self.next() else {
+                return None;
+            };
+            if self.next() != Some(Token::Colon) {
+                return None;
+            }; // if let Some(Token::Ident {})
+            let Some(var_type) = self.parse_type() else {
+                return None;
+            };
+            let var = Variable {
+                ident: param_id,
+                var_type,
+            };
+            params.push(var);
+            match self.next() {
+                Some(Token::CParen) => break,
+                Some(Token::Comma) => continue,
+                _ => return None,
+            }
+        }
+        if self.next() != Some(Token::SmArrow) {
+            return None;
+        }
+        let Some(return_type) = self.parse_type() else {
+            return None;
+        };
+        let Some(block) = self.parse_block() else {
+            return None;
+        };
+        Some(Function {
+            id,
+            params,
+            return_type,
+            contents: block,
+        })
     }
 
     fn parse_type(&mut self) -> Option<Type> {
