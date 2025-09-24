@@ -100,7 +100,7 @@ impl<'a> Tokens<'a> {
         self.buff.clone().next()
     }
 
-    fn matches(&mut self, other: &str) -> bool {
+    fn matchs(&mut self, other: &str) -> bool {
         let mut tmp = self.buff.clone();
         let mut buff: String = String::new();
         for i in 0..other.len() {
@@ -117,7 +117,7 @@ impl<'a> Tokens<'a> {
         buff == other
     }
 
-    fn match_char(&mut self, other: char) -> bool {
+    fn matchc(&mut self, other: char) -> bool {
         let mut tmp = self.buff.clone();
         if tmp.next() == Some(other) {
             self.buff.next();
@@ -139,28 +139,28 @@ impl Iterator for Tokens<'_> {
         Some(match self.buff.next()? {
             '\n' | ' ' | '\t' => self.next()?,
 
-            '>' if self.matches(">=") => Token::ShRightEq,
-            '<' if self.matches("<=") => Token::ShLeftEq,
-            '>' if self.match_char('>') => Token::ShRightOp,
-            '<' if self.match_char('<') => Token::ShLeftOp,
-            '-' if self.match_char('>') => Token::SmArrow,
-            '=' if self.match_char('>') => Token::LgArrow,
-            '+' if self.match_char('+') => Token::PlusOneOp,
-            '-' if self.match_char('-') => Token::MinusOneOp,
-            '&' if self.match_char('&') => Token::AndOp,
-            '|' if self.match_char('|') => Token::OrOp,
-            '=' if self.match_char('=') => Token::EqCmp,
-            '!' if self.match_char('=') => Token::NeqCmp,
-            '<' if self.match_char('=') => Token::LeCmp,
-            '>' if self.match_char('=') => Token::GeCmp,
-            '+' if self.match_char('=') => Token::PlusEq,
-            '-' if self.match_char('=') => Token::MinusEq,
-            '%' if self.match_char('=') => Token::ModEq,
-            '*' if self.match_char('=') => Token::TimesEq,
-            '/' if self.match_char('=') => Token::DivEq,
-            '&' if self.match_char('=') => Token::AndEq,
-            '|' if self.match_char('=') => Token::OrEq,
-            '^' if self.match_char('=') => Token::XorEq,
+            '>' if self.matchs(">=") => Token::ShRightEq,
+            '<' if self.matchs("<=") => Token::ShLeftEq,
+            '>' if self.matchc('>') => Token::ShRightOp,
+            '<' if self.matchc('<') => Token::ShLeftOp,
+            '-' if self.matchc('>') => Token::SmArrow,
+            '=' if self.matchc('>') => Token::LgArrow,
+            '+' if self.matchc('+') => Token::PlusOneOp,
+            '-' if self.matchc('-') => Token::MinusOneOp,
+            '&' if self.matchc('&') => Token::AndOp,
+            '|' if self.matchc('|') => Token::OrOp,
+            '=' if self.matchc('=') => Token::EqCmp,
+            '!' if self.matchc('=') => Token::NeqCmp,
+            '<' if self.matchc('=') => Token::LeCmp,
+            '>' if self.matchc('=') => Token::GeCmp,
+            '+' if self.matchc('=') => Token::PlusEq,
+            '-' if self.matchc('=') => Token::MinusEq,
+            '%' if self.matchc('=') => Token::ModEq,
+            '*' if self.matchc('=') => Token::TimesEq,
+            '/' if self.matchc('=') => Token::DivEq,
+            '&' if self.matchc('=') => Token::AndEq,
+            '|' if self.matchc('=') => Token::OrEq,
+            '^' if self.matchc('=') => Token::XorEq,
 
             '.' => Token::Dot,
             ',' => Token::Comma,

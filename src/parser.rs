@@ -42,17 +42,13 @@ enum AssignLhs {
     Reassign(Rc<Variable>),
 }
 
-// could a type be a string OR some other type (ha) of modification on a string?
-// Should primitive types be treated differently? (yes! How tho?)
-// So like
-
 enum Type {
     UserDefined(String),
     Ptr(Box<Type>),
-    PtrMut(Box<Type>),
+    PtrMut(Box<Type>), // not a real type yet
     Tuple(Vec<Type>),
     Array(Box<Type>, usize),
-    Int, // and more...
+    // and primitives lol
 }
 
 struct Parser<'a> {
@@ -131,7 +127,27 @@ impl Parser<'_> {
     fn parse_type(&mut self) -> Option<Type> {
         match self.next() {
             Some(Token::Ident(id)) => Some(Type::UserDefined(id)),
-            _ => todo!(),
+            Some(Token::Star) => Some(Type::Ptr(Box::new(self.parse_type()?))),
+            Some(Token::OParen) => {
+                let mut tuple: Vec<Type> = Vec::new();
+                while self.cur_token != Some(Token::CParen) {
+                    tuple.push(self.parse_type()?);
+                }
+                self.next();
+                Some(Type::Tuple(tuple))
+            }
+            Some(Token::OBracket) => {
+                let arr_type = self.parse_type()?;
+                if self.next() != Some(Token::Semicolon) {
+                    return None;
+                };
+                let Some(Token::IntLiteral(len)) = self.next() else {
+                    // doesn't handle negatives correctly
+                    return None;
+                };
+                Some(Type::Array(Box::new(self.parse_type()?), len))
+            }
+            _ => None,
         }
     }
 
@@ -154,7 +170,7 @@ impl Parser<'_> {
             None => None,
             Some(Token::Ident(_)) => {
                 if self.next_token == Some(Token::Dot) {
-                    if let Some(field) = self.parse_field() {
+                    if let Some(property) = self.parse_property() {
                         todo!();
                     }
                 }
@@ -242,7 +258,7 @@ impl Parser<'_> {
         todo!()
     }
 
-    fn parse_field(&mut self) -> Option<()> {
+    fn parse_property(&mut self) -> Option<()> {
         todo!()
     }
 }
