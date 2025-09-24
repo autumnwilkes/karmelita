@@ -1,7 +1,4 @@
 use crate::lexer::{Token, Tokens};
-use std::rc::Rc;
-
-enum ParseError {}
 
 struct Function {
     id: String,
@@ -60,13 +57,6 @@ struct Parser<'a> {
 
 #[allow(unused)]
 impl Parser<'_> {
-    fn increment_iter(&mut self) -> Option<Token> {
-        let tmp = self.cur_token.clone();
-        self.cur_token = self.next_token.clone();
-        self.next_token = self.tokens.next();
-        tmp
-    }
-
     fn parse(&mut self) {
         loop {
             match self.next() {
@@ -171,12 +161,22 @@ impl Parser<'_> {
         match self.cur_token {
             None => None,
             Some(Token::Ident(_)) => {
-                if self.next_token == Some(Token::Dot) {
-                    if let Some(property) = self.parse_property() {
-                        todo!();
+                let Some(expr) = self.parse_expression() else {
+                    return None;
+                };
+                match self.next() {
+                    Some(Token::Eq) => {
+                        let Some(rhs) = self.parse_expression() else {
+                            return None;
+                        };
+                        if self.next() != Some(Token::Semicolon) {
+                            return None;
+                        }
+                        Some(Statement::Assignment { lhs: expr, rhs })
                     }
+                    Some(Token::Semicolon) => Some(Statement::Expression(expr)),
+                    _ => None,
                 }
-                None
             }
             Some(Token::Let) => {
                 self.next();
