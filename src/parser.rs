@@ -10,10 +10,17 @@ struct Function {
     contents: Block,
 }
 
+// Variable vs function call vs property (aka both of those?)
 struct Variable {
     ident: String,
     var_type: Type,
 }
+
+struct Field {
+    id: String,
+}
+
+enum Pattern {} // The most terrifying enum ever lol
 
 type Block = Vec<Statement>;
 
@@ -23,7 +30,7 @@ enum Statement {
         contents: Block,
     },
     Assignment {
-        lhs: AssignLhs,
+        lhs: Expression,
         rhs: Expression,
     },
     Expression(Expression),
@@ -37,20 +44,13 @@ enum Statement {
 
 struct Expression {}
 
-enum AssignLhs {
-    Declaration(String, Type),
-    Reassign(Rc<Variable>),
-}
-
 enum Type {
     UserDefined(String),
     Ptr(Box<Type>),
-    PtrMut(Box<Type>), // not a real type yet
     Tuple(Vec<Type>),
     Array(Box<Type>, usize),
     // and primitives lol
 }
-
 struct Parser<'a> {
     tokens: Tokens<'a>,
 
@@ -58,6 +58,7 @@ struct Parser<'a> {
     next_token: Option<Token>,
 }
 
+#[allow(unused)]
 impl Parser<'_> {
     fn increment_iter(&mut self) -> Option<Token> {
         let tmp = self.cur_token.clone();
@@ -84,6 +85,7 @@ impl Parser<'_> {
         }
         let mut params: Vec<Variable> = Vec::new();
         loop {
+            // TODO: turn into while (?)
             if self.cur_token == Some(Token::CParen) {
                 break;
             }
@@ -176,52 +178,43 @@ impl Parser<'_> {
                 }
                 None
             }
-            Some(Token::IntLiteral(_))
-            | Some(Token::BoolLiteral(_))
-            | Some(Token::CharLiteral(_))
-            | Some(Token::StringLiteral(_)) => {
-                if let Some(expr) = self.parse_expression() {
-                    if self.cur_token == Some(Token::Semicolon) {
-                        return Some(Statement::Expression(expr));
-                    }
-                }
-                None
-            }
             Some(Token::Let) => {
                 self.next();
-                if let Some(Token::Ident(id)) = self.next() {
-                    if self.next() != Some(Token::Colon) {
-                        return None;
-                    }
-                    if let Some(var_type) = self.parse_type() {
-                        return match self.next() {
-                            Some(Token::Semicolon) => Some(Statement::Declaration {
-                                name: id,
-                                var_type,
-                                rhs: None,
-                            }),
-                            Some(Token::Eq) => {
-                                if let Some(expr) = self.parse_expression()
-                                    && self.next() == Some(Token::Semicolon)
-                                {
-                                    Some(Statement::Declaration {
-                                        name: id,
-                                        var_type,
-                                        rhs: Some(expr),
-                                    })
-                                } else {
-                                    None
-                                }
-                            }
-                            _ => None,
-                        };
-                    }
+                let Some(Token::Ident(id)) = self.next() else {
+                    return None;
+                };
+                if self.next() != Some(Token::Colon) {
+                    return None;
                 }
-                None
+                let Some(var_type) = self.parse_type() else {
+                    return None;
+                };
+                return match self.next() {
+                    Some(Token::Semicolon) => Some(Statement::Declaration {
+                        name: id,
+                        var_type,
+                        rhs: None,
+                    }),
+                    Some(Token::Eq) => {
+                        let Some(expr) = self.parse_expression() else {
+                            return None;
+                        };
+                        if self.next() != Some(Token::Semicolon) {
+                            return None;
+                        }
+
+                        Some(Statement::Declaration {
+                            name: id,
+                            var_type,
+                            rhs: Some(expr),
+                        })
+                    }
+                    _ => None,
+                };
             }
             Some(Token::If) => {
                 self.next();
-                if let Some(cond) = self.parse_expression()
+                if let Some(cond) = self.parse_expression() // TODO: flatten
                     && self.cur_token == Some(Token::OCurly)
                 {
                     if let Some(block) = self.parse_block() {
@@ -241,7 +234,14 @@ impl Parser<'_> {
                     None
                 }
             }
-            _ => None,
+            _ => {
+                if let Some(expr) = self.parse_expression() {
+                    if self.next() == Some(Token::Semicolon) {
+                        return Some(Statement::Expression(expr));
+                    }
+                }
+                None
+            }
         }
     }
 
@@ -257,7 +257,7 @@ impl Parser<'_> {
     fn parse_expression(&mut self) -> Option<Expression> {
         todo!()
     }
-
+    // prob not a real function lol
     fn parse_property(&mut self) -> Option<()> {
         todo!()
     }
