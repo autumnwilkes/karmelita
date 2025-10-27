@@ -13,15 +13,12 @@ struct Variable {
     var_type: Type,
 }
 
-struct Field {
-    id: String,
-}
-
-enum Pattern {} // The most terrifying enum ever lol
+enum IdentExprRhs {}
 
 type Block = Vec<Statement>;
 
 enum Statement {
+    // Need to include all equal statements (pluseq...)
     If {
         condition: Expression,
         contents: Block,
@@ -38,8 +35,73 @@ enum Statement {
         rhs: Option<Expression>,
     },
 }
+enum Expression {
+    Add {
+        left: Box<Expression>,
+        right: Box<Expression>,
+    },
+    Sub {
+        minuend: Box<Expression>,
+        subtrahend: Box<Expression>,
+    },
+    Mult {
+        left: Box<Expression>,
+        right: Box<Expression>,
+    },
+    Div {
+        dividend: Box<Expression>,
+        divisor: Box<Expression>,
+    },
+    Modulo {
+        value: Box<Expression>,
+        modulus: Box<Expression>,
+    },
+    FnCall {
+        function: Box<Expression>,
+        params: Vec<Expression>,
+    },
 
-struct Expression {}
+    Field {
+        parent: Box<Expression>,
+        child: Box<Expression>,
+    }, // I am pretending that methods are also fields?
+
+    // indexing an array
+    Index {
+        array: Box<Expression>,
+        index: Box<Expression>,
+    },
+
+    // Does nothing (parenthesis)
+    Null(Box<Expression>),
+
+    // inverts value
+    Not(Box<Expression>),
+
+    Ident(String),
+
+    Ref(Box<Expression>),
+    Deref(Box<Expression>),
+
+    // Pattern stuff?
+    Or(Box<Expression>, Box<Expression>),
+    LazyOr(Box<Expression>, Box<Expression>),
+    And(Box<Expression>, Box<Expression>),
+    LazyAnd(Box<Expression>, Box<Expression>),
+    Xor(Box<Expression>, Box<Expression>),
+
+    BShiftLeft(Box<Expression>, Box<Expression>),
+    BShiftRight(Box<Expression>, Box<Expression>),
+
+    Equals(Box<Expression>, Box<Expression>),
+    LessThan(Box<Expression>, Box<Expression>),
+    GreaterThan(Box<Expression>, Box<Expression>),
+
+    IntLiteral(usize), // check type
+    StrLiteral(String),
+    BoolLiteral(bool),
+    CharLiteral(char),
+}
 
 enum Type {
     UserDefined(String),
@@ -50,11 +112,11 @@ enum Type {
 }
 struct Parser<'a> {
     tokens: Tokens<'a>,
-
     cur_token: Option<Token>,
     next_token: Option<Token>,
 }
 
+enum Pattern {} // The most terrifying enum ever lol
 #[allow(unused)]
 impl Parser<'_> {
     fn parse(&mut self) {
@@ -84,7 +146,7 @@ impl Parser<'_> {
             };
             if self.next() != Some(Token::Colon) {
                 return None;
-            }; // if let Some(Token::Ident {})
+            };
             let Some(var_type) = self.parse_type() else {
                 return None;
             };
@@ -155,6 +217,44 @@ impl Parser<'_> {
             }
         }
         Some(block)
+    }
+
+    fn parse_exression(&mut self) -> Option<Expression> {
+        todo!()
+    }
+
+    fn parse_expression_0(&mut self) -> Option<Expression> {
+        match self.next_token {
+            None => None,
+            Some(Token::OParen) => {
+                let Some(expr) = self.parse_exression() else {
+                    return None;
+                };
+
+                if self.next() == Some(Token::CParen) {
+                    Some(expr)
+                }
+                None
+            }
+            Some(Token::Ident(name)) => {}
+            _ => todo!(),
+        }
+    }
+
+    fn parse_expression_ident(&mut self) -> Option<IdentExprRhs> {
+        let Some(ident) = self.next() else {
+            return None;
+        };
+        match self.cur_token {
+            None => None,
+            Some(Token::Dot) => {
+                self.next();
+                match self.cur_token {
+                    Some(Token::IntLiteral(int)) => 
+               }
+            },
+            _ => Some(Expression::Ident(ident))
+        }
     }
 
     fn parse_statement(&mut self) -> Option<Statement> {
@@ -254,11 +354,9 @@ impl Parser<'_> {
 
     // Finishes evaluation when it meets an unexpected token,
     // returns None if the tokens up to that point do not form an expression
+    //
+    // Dear god I need to do this noww aananaaamuyfuyatuyt
     fn parse_expression(&mut self) -> Option<Expression> {
-        todo!()
-    }
-    // prob not a real function lol
-    fn parse_property(&mut self) -> Option<()> {
         todo!()
     }
 }

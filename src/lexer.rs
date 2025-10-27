@@ -10,23 +10,18 @@ pub enum Token {
     At,
     Pipe,
     Backslash,
-
     SmArrow,
     LgArrow,
 
-    NotOp,
+    NotOp, //*
     PlusOneOp,
     MinusOneOp,
-
     BAndOp,
-
     ShLeftOp,
     ShRightOp,
-
     AndOp,
     OrOp,
     XorOp,
-
     ModOp,
     PlusOp,
     MinusOp,
@@ -39,13 +34,12 @@ pub enum Token {
     GtCmp,
     GeCmp,
 
-    Eq,
+    Eq, //*
     PlusEq,
     MinusEq,
     TimesEq,
     DivEq,
     ModEq,
-
     AndEq,
     OrEq,
     XorEq,
@@ -59,7 +53,6 @@ pub enum Token {
     OCurly,
     CCurly,
 
-    // Add more keywords lol
     If,
     Else,
     Fn,
@@ -199,10 +192,7 @@ impl Iterator for Tokens<'_> {
                     None => panic!("\' at the end of program"),
                 }
             }
-
             '"' => {
-                //TODO: this is being done awfully and has no handling for open quotes without
-                //closing them
                 let mut buff = String::new();
                 while let Some(char) = self.buff.next() {
                     if char == '"' {
@@ -212,11 +202,9 @@ impl Iterator for Tokens<'_> {
                 }
                 Token::StringLiteral(buff)
             }
-
             n @ ('a'..='z' | 'A'..='Z' | '_') => {
                 let mut buff: String = String::new();
                 buff.push(n);
-
                 while matches!(
                     self.peek_char(),
                     Some('a'..='z' | 'A'..='Z' | '0'..='9' | '_')

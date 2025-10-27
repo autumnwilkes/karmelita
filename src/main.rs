@@ -1,4 +1,5 @@
 mod lexer;
+#[allow(dead_code)]
 mod parser;
 
 pub fn main() {
