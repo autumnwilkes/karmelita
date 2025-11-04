@@ -185,7 +185,7 @@ impl Iterator for Tokens<'_> {
             '\'' => {
                 let next = match self.buff.next() {
                     // still not right, but close
-                    Some('\\') => self.buff.next(),
+                    Some('\\') => parse_escape(self.buff.next()),
                     n => n,
                 };
                 if self.buff.next() != Some('\'') {
@@ -198,11 +198,13 @@ impl Iterator for Tokens<'_> {
             }
             '"' => {
                 let mut buff = String::new();
-                while let Some(char) = self.buff.next() {
-                    if char == '"' {
-                        break;
+                loop {
+                    match self.buff.next() {
+                        Some('"') => break,
+                        Some('\\') => buff.push(parse_escape(self.buff.next()).unwrap()),
+                        Some(char) => buff.push(char),
+                        None => panic!("evil quote at end of file"),
                     }
-                    buff.push(char);
                 }
                 Token::StringLiteral(buff)
             }
@@ -211,7 +213,7 @@ impl Iterator for Tokens<'_> {
                 buff.push(n);
                 while matches!(
                     self.peek_char(),
-                    Some('a'..='z' | 'A'..='Z' | '0'..='9' | '_')
+                    Some('a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '\\')
                 ) {
                     buff.push(self.buff.next().unwrap());
                 }
@@ -229,7 +231,7 @@ impl Iterator for Tokens<'_> {
             }
             n @ '0'..='9' => {
                 let mut num: String = String::new();
-                let base = match self.peek_char() {
+                let radix = match self.peek_char() {
                     Some('x') if n == '0' => {
                         self.buff.next();
                         16
@@ -247,10 +249,14 @@ impl Iterator for Tokens<'_> {
                         10
                     }
                 };
-                while let Some('0'..='9' | 'a'..='f') = self.peek_char() {
+                while let Some('0'..='9' | 'a'..='z' | 'A'..='Z' | '_') = self.peek_char() {
+                    if self.peek_char() == Some('_') {
+                        self.buff.next();
+                        continue;
+                    }
                     num.push(self.buff.next().unwrap());
                 }
-                let t = usize::from_str_radix(&*num, base);
+                let t = usize::from_str_radix(&*num, radix);
                 match t {
                     Ok(n) => Token::IntLiteral(n),
                     Err(e) => todo!("no error handling for lexer number interpretation: {}", e),
@@ -258,6 +264,17 @@ impl Iterator for Tokens<'_> {
             }
             n => panic!("Unrecognized character in program"),
         })
+    }
+}
+
+fn parse_escape(val: Option<char>) -> Option<char> {
+    match val {
+        Some('\\') => Some('\\'),
+        Some('n') => Some('\n'),
+        Some('t') => Some('\t'),
+        Some('\"') => Some('"'),
+        Some('\'') => Some('\''),
+        _ => None,
     }
 }
 
@@ -285,16 +302,34 @@ mod test {
                 #[test]
                 #[should_panic]
                 pub fn $name() {
-                    let mut lexer = Tokens::new($x);
-                    lexer.next();
+                    let lexer = Tokens::new($x);
+                    lexer.for_each(|n| println!("{:?}", n));
                 }
             };
         }
 
+        invalid!(single_apostrophe, "'");
+        invalid!(single_quote, "\"");
+        invalid!(escape_char, "'\\'");
+        invalid!(escape_string, "\"\\\"");
+        invalid!(radix, "0bf");
+        invalid!(number_syntax, "0m");
         invalid!(
             extremely_large_integer,
             "10000000000000000000000000000000000"
         );
+
+        #[test]
+        pub fn empty() {
+            let mut lexer = Tokens::new("");
+            assert_eq!(lexer.next(), None);
+        }
+
+        #[test]
+        pub fn whitespace() {
+            let mut lexer = Tokens::new("\n\t\n\t                 ");
+            assert_eq!(lexer.next(), None);
+        }
 
         token!(dot, ".", Token::Dot);
         token!(comma, ",", Token::Comma);
@@ -361,6 +396,7 @@ mod test {
 
         token!(zero, "0", Token::IntLiteral(0));
         token!(small, "15", Token::IntLiteral(15));
+        token!(int_underscore, "1_1", Token::IntLiteral(11));
         token!(large_integer, "40000000000", Token::IntLiteral(40000000000));
         token!(
             very_large_integer,
@@ -369,6 +405,14 @@ mod test {
         );
         token!(char, "'a'", Token::CharLiteral('a'));
         token!(char_escaped, "'\\''", Token::CharLiteral('\''));
+        token!(char_line, "'\\n'", Token::CharLiteral('\n'));
+        token!(char_tab, "'\\t'", Token::CharLiteral('\t'));
+
+        token!(
+            string,
+            "\"Here is a test string\"",
+            Token::StringLiteral("Here is a test string".to_string())
+        );
     }
 
     #[test]
