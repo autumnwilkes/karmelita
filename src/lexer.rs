@@ -155,6 +155,15 @@ impl Iterator for Tokens<'_> {
             '|' if self.matchc('=') => Token::OrEq,
             '^' if self.matchc('=') => Token::XorEq,
 
+            '/' if self.matchc('/') => {
+                loop {
+                    if self.buff.next() == None || self.buff.next() == Some('\n') {
+                        break;
+                    }
+                }
+                self.next()?
+            }
+
             '.' => Token::Dot,
             ',' => Token::Comma,
             '?' => Token::Question,
@@ -303,7 +312,7 @@ mod test {
                 #[should_panic]
                 pub fn $name() {
                     let lexer = Tokens::new($x);
-                    lexer.for_each(|n| println!("{:?}", n));
+                    lexer.for_each(drop);
                 }
             };
         }
@@ -322,6 +331,12 @@ mod test {
         #[test]
         pub fn empty() {
             let mut lexer = Tokens::new("");
+            assert_eq!(lexer.next(), None);
+        }
+
+        #[test]
+        pub fn comment() {
+            let mut lexer = Tokens::new("// hi");
             assert_eq!(lexer.next(), None);
         }
 
@@ -393,7 +408,6 @@ mod test {
             Token::Ident("iflet".to_string())
         );
         token!(ident, "x", Token::Ident("x".to_string()));
-
         token!(zero, "0", Token::IntLiteral(0));
         token!(small, "15", Token::IntLiteral(15));
         token!(int_underscore, "1_1", Token::IntLiteral(11));
@@ -404,14 +418,18 @@ mod test {
             Token::IntLiteral(1000000000000000)
         );
         token!(char, "'a'", Token::CharLiteral('a'));
-        token!(char_escaped, "'\\''", Token::CharLiteral('\''));
+        token!(char_apostrophe, "'\\''", Token::CharLiteral('\''));
         token!(char_line, "'\\n'", Token::CharLiteral('\n'));
         token!(char_tab, "'\\t'", Token::CharLiteral('\t'));
+        token!(char_quote, "'\"'", Token::CharLiteral('"'));
+        token!(char_quote_escaped, "'\\\"'", Token::CharLiteral('"'));
+        token!(string, "\"str\"", Token::StringLiteral("str".to_string()));
 
         token!(
-            string,
-            "\"Here is a test string\"",
-            Token::StringLiteral("Here is a test string".to_string())
+            comment_plus,
+            "// test
++",
+            Token::PlusOp
         );
     }
 
