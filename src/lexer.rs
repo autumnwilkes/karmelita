@@ -1,4 +1,4 @@
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Token {
     Dot,
     Comma,
@@ -183,7 +183,11 @@ impl Iterator for Tokens<'_> {
             ']' => Token::CBracket,
 
             '\'' => {
-                let next = self.buff.next();
+                let next = match self.buff.next() {
+                    // still not right, but close
+                    Some('\\') => self.buff.next(),
+                    n => n,
+                };
                 if self.buff.next() != Some('\'') {
                     panic!("character without ending single quote")
                 }
@@ -225,7 +229,6 @@ impl Iterator for Tokens<'_> {
             }
             n @ '0'..='9' => {
                 let mut num: String = String::new();
-                num.push(n);
                 let base = match self.peek_char() {
                     Some('x') if n == '0' => {
                         self.buff.next();
@@ -250,10 +253,176 @@ impl Iterator for Tokens<'_> {
                 let t = usize::from_str_radix(&*num, base);
                 match t {
                     Ok(n) => Token::IntLiteral(n),
-                    Err(e) => todo!("no error handling for lexer number interpretation"),
+                    Err(e) => todo!("no error handling for lexer number interpretation: {}", e),
                 }
             }
             n => panic!("Unrecognized character in program"),
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    mod numbers {}
+
+    mod tokens {
+        use super::*;
+        macro_rules! token {
+            ($name: ident, $x: literal, $y:expr) => {
+                #[test]
+                pub fn $name() {
+                    let lexer = Tokens::new($x);
+                    assert_eq!(lexer.collect::<Vec<Token>>(), vec![$y]);
+                }
+            };
+        }
+
+        // TODO: error handling will make this the wrong solution
+        macro_rules! invalid {
+            ($name: ident, $x: literal) => {
+                #[test]
+                #[should_panic]
+                pub fn $name() {
+                    let mut lexer = Tokens::new($x);
+                    lexer.next();
+                }
+            };
+        }
+
+        invalid!(
+            extremely_large_integer,
+            "10000000000000000000000000000000000"
+        );
+
+        token!(dot, ".", Token::Dot);
+        token!(comma, ",", Token::Comma);
+        token!(question, "?", Token::Question);
+        token!(colon, ":", Token::Colon);
+        token!(semicolon, ";", Token::Semicolon);
+        token!(star, "*", Token::Star);
+        token!(hashtag, "#", Token::Hashtag);
+        token!(at, "@", Token::At);
+        token!(pipe, "|", Token::Pipe);
+        token!(backslash, "\\", Token::Backslash);
+        token!(sm_arrow, "->", Token::SmArrow);
+        token!(lg_arrow, "=>", Token::LgArrow);
+        token!(not, "!", Token::NotOp);
+        token!(plus_one, "++", Token::PlusOneOp);
+        token!(minus_one, "--", Token::MinusOneOp);
+        token!(and, "&", Token::BAndOp);
+        token!(shift_left, "<<", Token::ShLeftOp);
+        token!(shift_right, ">>", Token::ShRightOp);
+        token!(lazy_and, "&&", Token::AndOp);
+        token!(lazy_or, "||", Token::OrOp);
+        token!(xor, "^", Token::XorOp);
+        token!(modulus, "%", Token::ModOp);
+        token!(plus, "+", Token::PlusOp);
+        token!(minus, "-", Token::MinusOp);
+        token!(divide, "/", Token::DivOp);
+        token!(equals_comparison, "==", Token::EqCmp);
+        token!(not_equals, "!=", Token::NeqCmp);
+        token!(less_than, "<", Token::LtCmp);
+        token!(less_equal, "<=", Token::LeCmp);
+        token!(greater_than, ">", Token::GtCmp);
+        token!(greater_equal, ">=", Token::GeCmp);
+        token!(equals, "=", Token::Eq);
+        token!(plus_equals, "+=", Token::PlusEq);
+        token!(minus_equals, "-=", Token::MinusEq);
+        token!(times_equals, "*=", Token::TimesEq);
+        token!(divided_equals, "/=", Token::DivEq);
+        token!(mod_equals, "%=", Token::ModEq);
+        token!(and_equals, "&=", Token::AndEq);
+        token!(or_equals, "|=", Token::OrEq);
+        token!(xor_equals, "^=", Token::XorEq);
+        token!(shift_left_equals, "<<=", Token::ShLeftEq);
+        token!(shift_right_equals, ">>=", Token::ShRightEq);
+        token!(open_paren, "(", Token::OParen);
+        token!(closed_paren, ")", Token::CParen);
+        token!(open_bracket, "[", Token::OBracket);
+        token!(closed_bracket, "]", Token::CBracket);
+        token!(open_curly, "{", Token::OCurly);
+        token!(closed_curly, "}", Token::CCurly);
+        token!(if_keyword, "if", Token::If);
+        token!(else_keyword, "else", Token::Else);
+        token!(fn_keyword, "fn", Token::Fn);
+        token!(for_keyword, "for", Token::For);
+        token!(let_keyword, "let", Token::Let);
+        token!(return_keyword, "return", Token::Return);
+        token!(true_keyword, "true", Token::BoolLiteral(true));
+        token!(false_keyword, "false", Token::BoolLiteral(false));
+        token!(
+            double_keyword_ident,
+            "iflet",
+            Token::Ident("iflet".to_string())
+        );
+        token!(ident, "x", Token::Ident("x".to_string()));
+
+        token!(zero, "0", Token::IntLiteral(0));
+        token!(small, "15", Token::IntLiteral(15));
+        token!(large_integer, "40000000000", Token::IntLiteral(40000000000));
+        token!(
+            very_large_integer,
+            "1000000000000000",
+            Token::IntLiteral(1000000000000000)
+        );
+        token!(char, "'a'", Token::CharLiteral('a'));
+        token!(char_escaped, "'\\''", Token::CharLiteral('\''));
+    }
+
+    #[test]
+    pub fn test_string() {
+        let string = "\"here is a string\"";
+        let mut lexer = Tokens::new(string);
+        assert_eq!(
+            lexer.next(),
+            Some(Token::StringLiteral("here is a string".into()))
+        );
+    }
+
+    #[test]
+    pub fn test_int() {
+        let hex = "0xfe15";
+        let mut lexer = Tokens::new(hex);
+        assert_eq!(lexer.next(), Some(Token::IntLiteral(0xfe15)));
+    }
+
+    #[test]
+    pub fn test_fn() {
+        let function = "
+fn test() {
+    let x = true;
+    if (x) {
+        test2();
+    }
+}
+";
+        let lexer = Tokens::new(function);
+        let tokens = lexer.collect::<Vec<Token>>();
+        let correct = vec![
+            Token::Fn,
+            Token::Ident("test".into()),
+            Token::OParen,
+            Token::CParen,
+            Token::OCurly,
+            Token::Let,
+            Token::Ident("x".into()),
+            Token::Eq,
+            Token::BoolLiteral(true),
+            Token::Semicolon,
+            Token::If,
+            Token::OParen,
+            Token::Ident("x".into()),
+            Token::CParen,
+            Token::OCurly,
+            Token::Ident("test2".into()),
+            Token::OParen,
+            Token::CParen,
+            Token::Semicolon,
+            Token::CCurly,
+            Token::CCurly,
+        ];
+        assert_eq!(tokens, correct)
     }
 }

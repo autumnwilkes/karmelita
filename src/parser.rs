@@ -13,6 +13,8 @@ struct Variable {
     var_type: Type,
 }
 
+unsafe impl Send for Variable {}
+
 enum IdentExprRhs {}
 
 type Block = Vec<Statement>;
@@ -224,7 +226,7 @@ impl Parser<'_> {
     }
 
     fn parse_expression_0(&mut self) -> Option<Expression> {
-        match self.next_token {
+        match &self.next_token {
             None => None,
             Some(Token::OParen) => {
                 let Some(expr) = self.parse_exression() else {
@@ -232,11 +234,17 @@ impl Parser<'_> {
                 };
 
                 if self.next() == Some(Token::CParen) {
-                    Some(expr)
+                    return Some(expr);
                 }
                 None
             }
-            Some(Token::Ident(name)) => {}
+            Some(Token::Ident(name)) => {
+                let rhs = self.parse_expression_ident();
+                match rhs {
+                    Some(thing) => todo!(),
+                    None => todo!(),
+                }
+            }
             _ => todo!(),
         }
     }
@@ -250,10 +258,11 @@ impl Parser<'_> {
             Some(Token::Dot) => {
                 self.next();
                 match self.cur_token {
-                    Some(Token::IntLiteral(int)) => 
-               }
-            },
-            _ => Some(Expression::Ident(ident))
+                    Some(Token::IntLiteral(int)) => todo!(),
+                    _ => todo!(),
+                }
+            }
+            _ => todo!(), // Some(Expression::Ident(ident))
         }
     }
 
