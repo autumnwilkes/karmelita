@@ -37,6 +37,7 @@ enum Statement {
         rhs: Option<Expression>,
     },
 }
+// Maybe create stricter rules on how expressions can be created?
 enum Expression {
     Add {
         left: Box<Expression>,
@@ -58,6 +59,27 @@ enum Expression {
         value: Box<Expression>,
         modulus: Box<Expression>,
     },
+    Or {
+        left: Box<Expression>,
+        right: Box<Expression>,
+    },
+    And {
+        left: Box<Expression>,
+        right: Box<Expression>,
+    },
+    Xor {
+        left: Box<Expression>,
+        right: Box<Expression>,
+    },
+    BShiftLeft {
+        value: Box<Expression>,
+        shift: Box<Expression>,
+    },
+    BShiftRight {
+        value: Box<Expression>,
+        shift: Box<Expression>,
+    },
+
     FnCall {
         function: Box<Expression>,
         params: Vec<Expression>,
@@ -65,7 +87,7 @@ enum Expression {
 
     Field {
         parent: Box<Expression>,
-        child: Box<Expression>,
+        child: Box<Expression>, // could be path or ident
     }, // I am pretending that methods are also fields?
 
     // indexing an array
@@ -79,30 +101,78 @@ enum Expression {
 
     // inverts value
     Not(Box<Expression>),
+    Negation(Box<Expression>),
 
     Ident(String),
 
     Ref(Box<Expression>),
     Deref(Box<Expression>),
 
+    // ErrorPropogation(Box<Expression>),
+
     // Pattern stuff?
-    Or(Box<Expression>, Box<Expression>),
-    LazyOr(Box<Expression>, Box<Expression>),
-    And(Box<Expression>, Box<Expression>),
-    LazyAnd(Box<Expression>, Box<Expression>),
-    Xor(Box<Expression>, Box<Expression>),
-
-    BShiftLeft(Box<Expression>, Box<Expression>),
-    BShiftRight(Box<Expression>, Box<Expression>),
-
     Equals(Box<Expression>, Box<Expression>),
     LessThan(Box<Expression>, Box<Expression>),
     GreaterThan(Box<Expression>, Box<Expression>),
 
-    IntLiteral(usize), // check type
+    LazyOr(Box<Expression>, Box<Expression>),
+    LazyAnd(Box<Expression>, Box<Expression>),
+
+    IntLiteral(usize),
+    // FloatLiteral(f64),
     StrLiteral(String),
     BoolLiteral(bool),
     CharLiteral(char),
+    // Path
+    // TypeCast {expression: Box<Expression>, new_type: Type},
+    // Assignment {lhs: Box<Expression>, rhs: Box<Expression>}
+    Block {
+        block: Vec<Statement>,
+        ret: Option<Box<Expression>>,
+    },
+    Array(Vec<Expression>),
+    ArrayWithCopy {
+        value: Box<Expression>,
+        count: Box<Expression>,
+    },
+    ArrayIndex {
+        array: Box<Expression>,
+        index: Box<Expression>,
+    },
+    Tuple(Vec<Expression>),
+    TupleIndex {
+        tuple: Box<Expression>,
+        index: usize,
+    },
+    StructDeclaration {
+        name: Box<Expression>, // could be path?
+        fields: Vec<StructPart>,
+    },
+
+    // Closure {},
+    Loop(Box<Expression>), // block
+    Break(Box<Expression>),
+    Continue,
+    If {
+        predicate: Box<Expression>,
+        block: Box<Expression>,
+    }, // TODO: Add if let syntax
+    Match {
+        scrutinee: Box<Expression>,
+        arms: Vec<MatchArm>,
+    },
+    Return(Box<Expression>),
+    Underscore,
+}
+
+struct MatchArm {
+    pattern: Pattern,
+    block: Expression,
+}
+
+struct StructPart {
+    name: String,
+    value: Expression,
 }
 
 enum Type {

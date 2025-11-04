@@ -321,7 +321,7 @@ mod test {
         invalid!(single_quote, "\"");
         invalid!(escape_char, "'\\'");
         invalid!(escape_string, "\"\\\"");
-        invalid!(radix, "0bf");
+        invalid!(radix, "0b3");
         invalid!(number_syntax, "0m");
         invalid!(
             extremely_large_integer,
