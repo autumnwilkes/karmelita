@@ -59,6 +59,11 @@ pub enum Token {
     For,
     Let,
     Return,
+    Struct,
+    Impl,
+    Trait,
+    Enum,
+    Underscore,
 
     BoolLiteral(bool),
     IntLiteral(usize),
@@ -233,6 +238,11 @@ impl Iterator for Tokens<'_> {
                     "for" => Token::For,
                     "let" => Token::Let,
                     "return" => Token::Return,
+                    "struct" => Token::Struct,
+                    "trait" => Token::Trait,
+                    "enum" => Token::Enum,
+                    "impl" => Token::Impl,
+                    "_" => Token::Underscore,
                     "true" => Token::BoolLiteral(true),
                     "false" => Token::BoolLiteral(false),
                     name => Token::Ident(name.to_string()),
@@ -418,11 +428,11 @@ mod test {
             Token::IntLiteral(1000000000000000)
         );
         token!(char, "'a'", Token::CharLiteral('a'));
-        token!(char_apostrophe, "'\\''", Token::CharLiteral('\''));
-        token!(char_line, "'\\n'", Token::CharLiteral('\n'));
-        token!(char_tab, "'\\t'", Token::CharLiteral('\t'));
-        token!(char_quote, "'\"'", Token::CharLiteral('"'));
-        token!(char_quote_escaped, "'\\\"'", Token::CharLiteral('"'));
+        token!(char_apostrophe, "'\\''", Token::CharLiteral('\'')); // '\''
+        token!(char_line, "'\\n'", Token::CharLiteral('\n')); // '\n'
+        token!(char_tab, "'\\t'", Token::CharLiteral('\t')); // '\t'
+        token!(char_quote, "'\"'", Token::CharLiteral('"')); // '"'
+        token!(char_quote_escaped, "'\\\"'", Token::CharLiteral('"')); // '\"'
         token!(string, "\"str\"", Token::StringLiteral("str".to_string()));
 
         token!(

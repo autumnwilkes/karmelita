@@ -1,5 +1,41 @@
+use std::ops::MulAssign;
+
 use crate::lexer::{Token, Tokens};
 
+enum Item {
+    Function(Function),
+    Struct(Struct),
+    Module(String, Vec<Item>),
+    Use, // Need to think a bit more abt linking
+    Enum(Enum),
+    Trait(String, Vec<Function>),
+    Impl(String, Vec<Function>),
+    ImplTrait {
+        trait_name: String,
+        item_name: String,
+        implementation: Vec<Function>,
+    },
+}
+
+struct Enum {
+    id: String,
+    variants: Vec<EnumVariant>,
+}
+
+struct EnumVariant {
+    name: String,
+    kind: EnumVariantType,
+}
+enum EnumVariantType {
+    Thin,
+    Struct { fields: Vec<Variable> },
+    Tuple { elements: Vec<Type> },
+}
+
+struct Struct {
+    id: String,
+    fields: Vec<Variable>,
+}
 struct Function {
     id: String,
     params: Vec<Variable>,
@@ -12,8 +48,6 @@ struct Variable {
     ident: String,
     var_type: Type,
 }
-
-unsafe impl Send for Variable {}
 
 enum IdentExprRhs {}
 
@@ -111,12 +145,27 @@ enum Expression {
     // ErrorPropogation(Box<Expression>),
 
     // Pattern stuff?
-    Equals(Box<Expression>, Box<Expression>),
-    LessThan(Box<Expression>, Box<Expression>),
-    GreaterThan(Box<Expression>, Box<Expression>),
+    Equals {
+        left: Box<Expression>,
+        right: Box<Expression>,
+    },
+    LessThan {
+        less: Box<Expression>,
+        greater: Box<Expression>,
+    },
+    GreaterThan {
+        greater: Box<Expression>,
+        less: Box<Expression>,
+    },
 
-    LazyOr(Box<Expression>, Box<Expression>),
-    LazyAnd(Box<Expression>, Box<Expression>),
+    LazyOr {
+        first: Box<Expression>,
+        second: Box<Expression>,
+    },
+    LazyAnd {
+        first: Box<Expression>,
+        second: Box<Expression>,
+    },
 
     IntLiteral(usize),
     // FloatLiteral(f64),
@@ -180,6 +229,10 @@ enum Type {
     Ptr(Box<Type>),
     Tuple(Vec<Type>),
     Array(Box<Type>, usize),
+    Integer,
+    String,
+    Char,
+    Bool,
     // and primitives lol
 }
 struct Parser<'a> {
@@ -188,13 +241,18 @@ struct Parser<'a> {
     next_token: Option<Token>,
 }
 
-enum Pattern {} // The most terrifying enum ever lol
+enum Pattern {}
+
 #[allow(unused)]
 impl Parser<'_> {
     fn parse(&mut self) {
+        let mut items: Vec<Item> = vec![];
         loop {
             match self.next() {
-                Some(Token::Fn) => {}
+                Some(Token::Fn) => items.push(Item::Function(self.parse_function().unwrap())),
+                Some(Token::Struct) => {}
+                Some(Token::Impl) => {}
+                Some(Token::Trait) => {}
                 _ => {}
             }
         }
@@ -293,6 +351,11 @@ impl Parser<'_> {
 
     fn parse_exression(&mut self) -> Option<Expression> {
         todo!()
+    }
+
+    fn parse_ret(&mut self) -> Option<Expression> {
+        let x;
+        x = return None;
     }
 
     fn parse_expression_0(&mut self) -> Option<Expression> {
@@ -429,13 +492,5 @@ impl Parser<'_> {
         self.cur_token = self.next_token.clone();
         self.next_token = self.tokens.next();
         tmp
-    }
-
-    // Finishes evaluation when it meets an unexpected token,
-    // returns None if the tokens up to that point do not form an expression
-    //
-    // Dear god I need to do this noww aananaaamuyfuyatuyt
-    fn parse_expression(&mut self) -> Option<Expression> {
-        todo!()
     }
 }
