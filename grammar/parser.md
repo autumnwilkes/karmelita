@@ -142,7 +142,9 @@ field_access -\>
 | \<float\><br>
 <br>
 
-\<keyword\>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::=<br>
+```
+
+<keyword> ::=
 | "as"
 | "break"
 | "const"
@@ -181,12 +183,13 @@ field_access -\>
 | "async"
 | "await"
 | "dyn"
-
+```
 ### Regex for terminals
-
-\<ident-or-keyword\>&nbsp;::= \[a-zA-Z\_\]\[a-zA-Z0-9\_\]\*<br>
-\<string\>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= "(\\\\\[0nt"'\\\\\]|\[^"\\\\\])\*"<br>
-\<integer\>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= (0b\[0-1\]\+)|(0x\[0-9a-f\]+)|(0o\[0-7\]+)|(\[0-9\]+)<br>
-\<boolean\>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= true|false<br>
-\<character\>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= '(\\\[0nt"'\\\]|\[^"\])'<br>
-\<float\>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;::= \[0-9\]+\\.\[0-9\]+<br>
+```bfn
+<word>      ::= [a-zA-Z_][a-zA-Z0-9_]*
+<string>    ::= "(\\[0nt"'\\]|[^"\\])*"
+<integer>   ::= (0b[0-1]+)|(0x[0-9a-f]+)|(0o[0-7]+)|([0-9]+)
+<boolean>   ::= true|false
+<character> ::= '(\\[0nt"'\\]|[^"])'
+<float>     ::= [0-9]+\.[0-9]+
+```
