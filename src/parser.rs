@@ -349,7 +349,7 @@ impl Parser<'_> {
         Some(block)
     }
 
-    fn parse_exression(&mut self) -> Option<Expression> {
+    fn parse_expression(&mut self) -> Option<Expression> {
         todo!()
     }
 
@@ -362,7 +362,7 @@ impl Parser<'_> {
         match &self.next_token {
             None => None,
             Some(Token::OParen) => {
-                let Some(expr) = self.parse_exression() else {
+                let Some(expr) = self.parse_expression() else {
                     return None;
                 };
 

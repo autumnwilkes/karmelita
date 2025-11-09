@@ -1,195 +1,223 @@
-program -\> \<function> <program> | <null>
-function -\> \<name>(<params>) -> <type> {<block>}
-params -\> \<null> | <name>: <type><np_params>
-np_params -\> , \<name>: <type><np_params> | <null>
-block -\> \<statement> <block> | <null>
-statement -\> \<expression>; | <variable_declaration> | <variable_assign> | <if_statement> | <return_statement>
-variable_declaration -\> let \<name>: <type>= <expression>; | let <name>: <type>; // This is not deterministic
-variable_assign -\> = \<expression>;
-lhs_assign -\> let \<name>: <type> | <name>
-return_statement -\> return \<expression>;
-expression -\> \<function_call> | <arithmatic_expression> | <logic_expression> | <literal> | <name>
-function_call -\> \<name>(<tuple>)
-tuple -\> \<null> | <nn_tuple>
-nn_tuple -\> \<expression>, <nn_tuple> | <expression>
-if_statement -\> if (\<expression>) {<block>} <elif_statement>
-elif_statement -\> else if (\<expression>) {<block>} <elif_statement> | else {<block>} | <null>
-arithmatic_expression -\> TODO
-logic_expression -\> TODO
-statement -\> \<name>
-
 np means non principal
-currently, this grammar encounters issues when coming across a line starting with \<name\>, where it cannot tell if this is a variable assign statement or an expression statement
 
-ret -\>
-| return \<ret\>
-| break \<ret\>
-| \<assign\>
+TODO: macro invocation stuff
+note: `&` as a prefix needs to play nice with `&&`
 
-assign -\>
-| \<range\> = <assign>
-| \<range\> <compound_assign> <assign>
-| \<range\>
-
-compound_assign -\>
-| +=
-| -=
-| \*=
-| /=
-| %=
-| \<<=
-| \>>=
-| &=
-| |=
-| ^=
-
-range -\>
-| \<?\>..<?>
-| ..\<?\>
-| \<?\>..
-| ..
-| ..=\<?\>
-| \<?\>..=<?>
-| \<lazy_or\>
-
-lazy_or -\>
-| \<cmp\> || <lazy_or>
-| \<lazy_and\>
-
-lazy_and -\>
-| \<cmp\> && <lazy_and>
-| \<cmp\>
-
-cmp -\>
-| \<?\> == <cmp>
-| \<?\> != <cmp>
-| \<?\> < <cmp>
-| \<?\> <= <cmp>
-| \<?\> > <cmp>
-| \<?\> >= <cmp>
-
-bitwise_or -\>
-| \<bitwise_xor\> | <bitwise_or>
-| \<bitwise_xor\>
-
-bitwise_xor -\>
-| \<bitwise_and\> & <bitwise_xor>
-| \<bitwise_and\>
-
-bitwise_and -\>
-| \<bit_shift\> & <bitwise_and>
-| \<bit_shift\>
-
-bit_shift -\>
-| \<term\> << <bit_shift>
-| \<term\> >> <bit_shift>
-| \<term\>
-
-term -\>
-| \<factor\> + <term>
-| \<factor\> - <term>
-| \<factor\>
-
-factor -\>
-| \<type_cast\> \* <factor>
-| \<type_cast\> / <factor>
-| \<type_cast\> % <factor>
-| \<type_cast\>
-
-type_cast -\>
-| : // IDK WHAT'S GOING ON HERE LOL
-| \<unary\> as <type_cast> // TODO: bad
-| \<unary\>
-
-unary -\>
-| -\<unary\>
-| !\<unary\>
-| \*\<unary\>
-| &\<unary\>
-| &mut \<unary\>
-| \<function_call\>
-
-field_access -\>
-| \<field_access\><call_or_index>.<field_access>
-| \<field_access\>
-
-call_or_index -\>
-| []\<call_or_index\>
-| ()\<call_or_index\>
-| \<null\>
-
-field_access -\>
-| \<method_call\>.<field_access>
-| \<method_call\>
-
-method_call -\>
-| \<method_call\>.<method_call>() // evil!!!
-| \<path\>
-| \<path\>
-
-field_access -\>
-|
-
-\<some-thing\> ::=<br>
-| \<literal\>
-|
-
-\<literal\> ::=<br>
-| \<string\><br>
-| \<integer\><br>
-| \<boolean\><br>
-| \<character\><br>
-| \<float\><br>
-<br>
+### Program grammar
 
 ```
-
-<keyword> ::=
-| "as"
-| "break"
-| "const"
-| "continue"
-| "crate"
-| "else"
-| "enum"
-| "extern"
-| "false"
-| "fn"
-| "for"
-| "if"
-| "impl"
-| "in"
-| "let"
-| "loop"
-| "match"
-| "mod"
-| "move"
-| "mut"
-| "pub"
-| "ref"
-| "return"
-| "self"
-| "Self"
-| "static"
-| "struct"
-| "super"
-| "trait"
-| "true"
-| "type"
-| "unsafe"
-| "use"
-| "where"
-| "while"
-| "async"
-| "await"
-| "dyn"
+<program> ::= <item> <program> | <null>
+<item> ::=
+  <function>
+| <struct>
+| <enum>
+| <mod>
+| <use>
+| <const>
+<function> ::= <ident>(<params>) <ret-type> <block>
+<params> ::= <ident>: <type> <np-params> | <null>
+<np-params> ::= , <ident>: <type> <np-params> | <null>
+<statement> ::= <expr>; | <var-declaration>
+<var-decleration> ::= let <ident><var-typing>; | let <ident><var-typing> = <expr>;
+<var-typing> ::= : <type> | <null>
+<ret-type> ::= -> <type> | <null>
 ```
-### Regex for terminals
+
+### Expression grammar
+
+```
+<expr>              ::=
+  return <expr>
+| break <expr>
+| <assign>
+
+<assign> ::=
+  <primary> = <assign>
+| <primary> <compound-assign> <assign>
+| <range>
+
+<range> ::=
+  <or><range-op><or>
+| <range-op><or>
+| <or><range-op>
+| <lazy-or>
+
+<range-op> ::= .. | ..=
+
+<lazy-or> ::= <lazy-and> '||' <lazy-or> | <lazy-and>
+
+<lazy-and> ::= <cmp> && <lazy-and> | <cmp>
+
+<cmp> ::= <or> <cmp-op> <or> | <or>
+
+<cmp-op> ::=
+  ==
+| !=
+| <
+| <=
+| >
+| >=
+
+<or> ::= <xor> '|' <or> | <xor>
+
+<xor> ::= <and> ^ <xor> | <and>
+
+<and> ::= <shift> & <and> | <shift>
+
+<shift> ::= <sum> << <shift> | <sum> >> <shift> | <sum>
+
+<sum>   ::= <mult> + <sum> | <mult> - <sum> | <mult>
+
+<mult>   ::=
+  <cast> * <mult>
+| <cast> / <mult>
+| <cast> % <mult>
+| <cast>
+
+<cast> ::= <primary> as <type> | <primary>
+
+<primary> ::= <prefix><base><postfix>
+
+<prefix> ::=
+  &<prefix>
+| &mut<prefix>
+| &raw const<prefix>
+| &raw mut<prefix>
+| *<prefix>
+| -<prefix>
+| !<prefix>
+| <null>
+
+<postfix>   ::=
+  .<field><postfix>
+| (<args>)<postfix>
+| [<expr>]<postfix>
+| ?<postfix>
+| <null>
+
+<field>   ::=
+  await
+| <path>()
+| <ident>
+
+<base>              ::=
+  <literal>
+| <ident>
+| <tuple>
+| <path>
+| <block>
+| <array>
+| <struct-expr>
+| <closure>
+| <loop>
+| <for>
+| <while>
+| <if>
+| <match>
+| _
+
+<tuple> ::= (<args>)
+<path> ::= <ident>::<path> | <ident>::<generic-params> | <ident>
+<generic-params> ::= <not-implemented>
+<block> ::= {<np-block>}
+<np-block> ::= <statement><np-block> | <expr> | <null>
+<array> ::= [<args>] | [<expr>; <expr>]
+<struct-expr> ::= <ident> {<struct-args>}
+<struct-args> ::= <struct-arg>, <struct-args> | <struct-arg> | <null>
+<struct-arg> ::= <ident>: <expr> | <ident>
+<closure> ::= <not-implemented>
+<loop> ::= loop <block>
+<for> ::= for <ident> in <expr> <block>
+<while> ::= while <expr> <block>
+<if> ::= if <expr> <block> <else>
+<else> ::= else <if> | else <block>
+<match> ::= <not-implemented>
+
+<literal>           ::=
+  <string>
+| <int>
+| <bool>
+| <char>
+| <float>
+
+<ident>           ::= <word> & !<strict> & !<reserved>
+
+<keyword>         ::=
+  <strict>
+| <reserved>
+| <weak>
+
+<strict-keyword>  ::=
+  as
+| break
+| const
+| continue
+| crate
+| else
+| enum
+| extern
+| false
+| fn
+| for
+| if
+| impl
+| in
+| let
+| loop
+| match
+| mod
+| move
+| mut
+| pub
+| ref
+| return
+| self
+| Self
+| static
+| struct
+| super
+| trait
+| true
+| type
+| unsafe
+| use
+| where
+| while
+| async
+| await
+| dyn
+
+<reserved> ::=
+  abstract
+| become
+| box
+| do
+| final
+| macro
+| override
+| priv
+| typeof
+| unsized
+| virtual
+| yield
+| try
+| gen
+
+<weak>     ::=
+  static
+| macro_rules
+| raw
+| safe
+| union
+```
+
+## Regex for complex tokens
+
 ```bfn
-<word>      ::= [a-zA-Z_][a-zA-Z0-9_]*
+<word>      ::= [a-zA-Z_][a-zA-Z_0-9]*
 <string>    ::= "(\\[0nt"'\\]|[^"\\])*"
-<integer>   ::= (0b[0-1]+)|(0x[0-9a-f]+)|(0o[0-7]+)|([0-9]+)
-<boolean>   ::= true|false
-<character> ::= '(\\[0nt"'\\]|[^"])'
+<int>   ::= (0b[0-1]+)|(0x[0-9a-f]+)|(0o[0-7]+)|([0-9]+)
+<bool>   ::= true|false
+<char> ::= '(\\[0nt"'\\]|[^"])'
 <float>     ::= [0-9]+\.[0-9]+
 ```
