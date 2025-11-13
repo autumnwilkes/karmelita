@@ -67,3 +67,6 @@ IntLiteral(usize),
 CharLiteral(char),
 StringLiteral(String),
 Ident(String),
+
+// In addition to being used for explicit dereferencing operations with the
+/// (unary) `*` operator in immutable contexts, `Deref` is also used implicitly

@@ -64,6 +64,7 @@ pub enum Token {
     Trait,
     Enum,
     Underscore,
+    Mut, //afayutmyfmtuyfamt
 
     BoolLiteral(bool),
     IntLiteral(usize),

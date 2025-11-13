@@ -1,5 +1,3 @@
-use std::ops::MulAssign;
-
 use crate::lexer::{Token, Tokens};
 
 enum Item {
@@ -71,54 +69,34 @@ enum Statement {
         rhs: Option<Expression>,
     },
 }
+
+struct BinExpr {
+    lhs: Box<Expression>,
+    operation: BinOp,
+    rhs: Box<Expression>,
+}
+
+enum BinOp {
+    Add,
+    Sub,
+    Mult,
+    Div,
+    Mod,
+    Or,
+    And,
+    Xor,
+    ShiftLeft,
+    ShiftRight,
+}
+
 // Maybe create stricter rules on how expressions can be created?
 enum Expression {
-    Add {
-        left: Box<Expression>,
-        right: Box<Expression>,
-    },
-    Sub {
-        minuend: Box<Expression>,
-        subtrahend: Box<Expression>,
-    },
-    Mult {
-        left: Box<Expression>,
-        right: Box<Expression>,
-    },
-    Div {
-        dividend: Box<Expression>,
-        divisor: Box<Expression>,
-    },
-    Modulo {
-        value: Box<Expression>,
-        modulus: Box<Expression>,
-    },
-    Or {
-        left: Box<Expression>,
-        right: Box<Expression>,
-    },
-    And {
-        left: Box<Expression>,
-        right: Box<Expression>,
-    },
-    Xor {
-        left: Box<Expression>,
-        right: Box<Expression>,
-    },
-    BShiftLeft {
-        value: Box<Expression>,
-        shift: Box<Expression>,
-    },
-    BShiftRight {
-        value: Box<Expression>,
-        shift: Box<Expression>,
-    },
-
+    Binary(BinOp, Box<Expression>, Box<Expression>),
+    Postfix(),
     FnCall {
         function: Box<Expression>,
         params: Vec<Expression>,
     },
-
     Field {
         parent: Box<Expression>,
         child: Box<Expression>, // could be path or ident
@@ -140,6 +118,7 @@ enum Expression {
     Ident(String),
 
     Ref(Box<Expression>),
+    RefMut(Box<Expression>),
     Deref(Box<Expression>),
 
     // ErrorPropogation(Box<Expression>),
@@ -349,54 +328,49 @@ impl Parser<'_> {
         Some(block)
     }
 
+    fn parse_prefix_expression(&mut self) -> Option<Expression> {
+        match self.next() {
+            Some(Token::BAndOp) => match self.cur_token {
+                Some(Token::Mut) => {
+                    self.next();
+                    Some(Expression::RefMut(Box::new(
+                        self.parse_prefix_expression()?,
+                    )))
+                }
+                _ => Some(Expression::Ref(Box::new(self.parse_prefix_expression()?))),
+            },
+            Some(Token::AndOp) => match self.cur_token {
+                Some(Token::Mut) => {
+                    self.next();
+                    Some(Expression::Ref(Box::new(Expression::RefMut(Box::new(
+                        self.parse_prefix_expression()?,
+                    )))))
+                }
+                _ => Some(Expression::Ref(Box::new(Expression::Ref(Box::new(
+                    self.parse_prefix_expression()?,
+                ))))),
+            },
+            Some(Token::Star) => Some(Expression::Deref(Box::new(self.parse_prefix_expression()?))),
+            Some(Token::MinusOp) => Some(Expression::Negation(Box::new(
+                self.parse_prefix_expression()?,
+            ))),
+            Some(Token::NotOp) => Some(Expression::Not(Box::new(self.parse_prefix_expression()?))),
+            _ => self.parse_base_expression(),
+        }
+    }
+
+    fn parse_suffix_expression(&mut self) -> Option<Expression> {
+        todo!()
+    }
     fn parse_expression(&mut self) -> Option<Expression> {
         todo!()
     }
-
-    fn parse_ret(&mut self) -> Option<Expression> {
-        let x;
-        x = return None;
+    fn parse_base_expression(&mut self) -> Option<Expression> {
+        todo!()
     }
 
-    fn parse_expression_0(&mut self) -> Option<Expression> {
-        match &self.next_token {
-            None => None,
-            Some(Token::OParen) => {
-                let Some(expr) = self.parse_expression() else {
-                    return None;
-                };
-
-                if self.next() == Some(Token::CParen) {
-                    return Some(expr);
-                }
-                None
-            }
-            Some(Token::Ident(name)) => {
-                let rhs = self.parse_expression_ident();
-                match rhs {
-                    Some(thing) => todo!(),
-                    None => todo!(),
-                }
-            }
-            _ => todo!(),
-        }
-    }
-
-    fn parse_expression_ident(&mut self) -> Option<IdentExprRhs> {
-        let Some(ident) = self.next() else {
-            return None;
-        };
-        match self.cur_token {
-            None => None,
-            Some(Token::Dot) => {
-                self.next();
-                match self.cur_token {
-                    Some(Token::IntLiteral(int)) => todo!(),
-                    _ => todo!(),
-                }
-            }
-            _ => todo!(), // Some(Expression::Ident(ident))
-        }
+    fn postfix_to_expression(&mut self, expr: Expression) -> Option<Expression> {
+        todo!()
     }
 
     fn parse_statement(&mut self) -> Option<Statement> {
