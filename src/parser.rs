@@ -173,7 +173,7 @@ enum Expression {
         index: usize,
     },
     StructDeclaration {
-        name: Box<Expression>, // could be path?
+        name: String, // could be path?
         fields: Vec<StructPart>,
     },
 
@@ -216,8 +216,7 @@ enum Type {
 }
 struct Parser<'a> {
     tokens: Tokens<'a>,
-    cur_token: Option<Token>,
-    next_token: Option<Token>,
+    next: Option<Token>,
 }
 
 enum Pattern {}
@@ -247,7 +246,7 @@ impl Parser<'_> {
         let mut params: Vec<Variable> = Vec::new();
         loop {
             // TODO: turn into while (?)
-            if self.cur_token == Some(Token::CParen) {
+            if self.next == Some(Token::CParen) {
                 break;
             }
             let Some(Token::Ident(param_id)) = self.next() else {
@@ -293,7 +292,7 @@ impl Parser<'_> {
             Some(Token::Star) => Some(Type::Ptr(Box::new(self.parse_type()?))),
             Some(Token::OParen) => {
                 let mut tuple: Vec<Type> = Vec::new();
-                while self.cur_token != Some(Token::CParen) {
+                while self.next != Some(Token::CParen) {
                     tuple.push(self.parse_type()?);
                 }
                 self.next();
@@ -316,11 +315,11 @@ impl Parser<'_> {
 
     fn parse_block(&mut self) -> Option<Block> {
         let mut block: Block = Vec::new();
-        while self.cur_token != Some(Token::CCurly) {
-            if self.cur_token == None {
+        while self.next != Some(Token::CCurly) {
+            if self.next == None {
                 return None;
             }
-            let statement = self.parse_statement();
+            let statement = todo!(); // self.parse_statement();
             if let Some(s) = statement {
                 block.push(s);
             }
@@ -328,143 +327,219 @@ impl Parser<'_> {
         Some(block)
     }
 
-    fn parse_prefix_expression(&mut self) -> Option<Expression> {
-        match self.next() {
-            Some(Token::BAndOp) => match self.cur_token {
+    fn prefix_expr(&mut self) -> Option<Expression> {
+        match self.next {
+            Some(Token::BAndOp) => match self.next_skip() {
                 Some(Token::Mut) => {
-                    self.next();
-                    Some(Expression::RefMut(Box::new(
-                        self.parse_prefix_expression()?,
-                    )))
+                    self.consume();
+                    Some(Expression::RefMut(Box::new(self.prefix_expr()?)))
                 }
-                _ => Some(Expression::Ref(Box::new(self.parse_prefix_expression()?))),
+                _ => Some(Expression::Ref(Box::new(self.prefix_expr()?))),
             },
-            Some(Token::AndOp) => match self.cur_token {
+            Some(Token::AndOp) => match self.next_skip() {
                 Some(Token::Mut) => {
-                    self.next();
+                    self.consume();
                     Some(Expression::Ref(Box::new(Expression::RefMut(Box::new(
-                        self.parse_prefix_expression()?,
+                        self.prefix_expr()?,
                     )))))
                 }
                 _ => Some(Expression::Ref(Box::new(Expression::Ref(Box::new(
-                    self.parse_prefix_expression()?,
+                    self.prefix_expr()?,
                 ))))),
             },
-            Some(Token::Star) => Some(Expression::Deref(Box::new(self.parse_prefix_expression()?))),
-            Some(Token::MinusOp) => Some(Expression::Negation(Box::new(
-                self.parse_prefix_expression()?,
-            ))),
-            Some(Token::NotOp) => Some(Expression::Not(Box::new(self.parse_prefix_expression()?))),
-            _ => self.parse_base_expression(),
+            Some(Token::Star) => {
+                self.consume();
+                Some(Expression::Deref(Box::new(self.prefix_expr()?)))
+            }
+            Some(Token::MinusOp) => {
+                self.consume();
+                Some(Expression::Negation(Box::new(self.prefix_expr()?)))
+            }
+            Some(Token::NotOp) => {
+                self.consume();
+                Some(Expression::Not(Box::new(self.prefix_expr()?)))
+            }
+            _ => self.base_expr(),
         }
     }
 
-    fn parse_suffix_expression(&mut self) -> Option<Expression> {
+    fn postfix_to_expr(&mut self, e: Expression) -> Option<Expression> {
         todo!()
     }
-    fn parse_expression(&mut self) -> Option<Expression> {
+    fn expression(&mut self) -> Option<Expression> {
         todo!()
     }
-    fn parse_base_expression(&mut self) -> Option<Expression> {
-        todo!()
+    fn base_expr(&mut self) -> Option<Expression> {
+        match self.next() {
+            Some(Token::IntLiteral(lit)) => Some(Expression::IntLiteral(lit)),
+            Some(Token::CharLiteral(lit)) => Some(Expression::CharLiteral(lit)),
+            Some(Token::StringLiteral(lit)) => Some(Expression::StrLiteral(lit)),
+            Some(Token::BoolLiteral(lit)) => Some(Expression::BoolLiteral(lit)),
+            Some(Token::Ident(id)) => {
+                //todo: path stuff
+                //also struct stuff
+                if self.next != Some(Token::OBracket) {
+                    return Some(Expression::Ident(id));
+                }
+                self.consume();
+                let args: Vec<StructPart> = vec![];
+                while self.next != Some(Token::CBracket) {
+                    let Some(Token::Ident(field)) = self.next() else {
+                        return None;
+                    };
+                    if self.next() != Some(Token::Colon) {
+                        return None;
+                    }
+                    let Some(expr) = self.expression() else {
+                        return None;
+                    };
+                    match self.next {
+                        Some(Token::Comma) => self.consume(),
+                        Some(Token::CBracket) => (),
+                        _ => return None,
+                    }
+                    args.push(StructPart {
+                        name: field,
+                        value: expr,
+                    })
+                }
+                Some(Expression::StructDeclaration {
+                    name: id,
+                    fields: args,
+                })
+            }
+            Some(Token::OParen) => {
+                let args = self.parse_args();
+                if self.next() != Some(Token::CParen) {
+                    return None;
+                }
+                Some(Expression::Tuple(args))
+            }
+            Some(Token::OCurly) => {
+                let block = self.parse_block();
+                if self.next() != Some(Token::CCurly) {
+                    return None;
+                }
+                Some(Expression::Block(block))
+            }
+            Some(Token::OBracket) => {
+                todo!()
+            }
+            Some(Token::Loop) => Some(Expression::Loop(Box::new(self.expression()?))),
+            Some(Token::For) => todo!(),
+            Some(Token::While) => Some(Expression::While(self.expression(), self.expression())),
+            _ => todo!(),
+        }
     }
 
     fn postfix_to_expression(&mut self, expr: Expression) -> Option<Expression> {
         todo!()
     }
-
-    fn parse_statement(&mut self) -> Option<Statement> {
-        match self.cur_token {
-            None => None,
-            Some(Token::Ident(_)) => {
-                let Some(expr) = self.parse_expression() else {
-                    return None;
-                };
-                match self.next() {
-                    Some(Token::Eq) => {
-                        let Some(rhs) = self.parse_expression() else {
-                            return None;
-                        };
-                        if self.next() != Some(Token::Semicolon) {
-                            return None;
+    /*
+        fn parse_statement(&mut self) -> Option<Statement> {
+            match self.next {
+                None => None,
+                Some(Token::Ident(_)) => {
+                    let Some(expr) = self.parse_expression() else {
+                        return None;
+                    };
+                    match self.next() {
+                        Some(Token::Eq) => {
+                            let Some(rhs) = self.parse_expression() else {
+                                return None;
+                            };
+                            if self.next() != Some(Token::Semicolon) {
+                                return None;
+                            }
+                            Some(Statement::Assignment { lhs: expr, rhs })
                         }
-                        Some(Statement::Assignment { lhs: expr, rhs })
+                        Some(Token::Semicolon) => Some(Statement::Expression(expr)),
+                        _ => None,
                     }
-                    Some(Token::Semicolon) => Some(Statement::Expression(expr)),
-                    _ => None,
                 }
-            }
-            Some(Token::Let) => {
-                self.next();
-                let Some(Token::Ident(id)) = self.next() else {
-                    return None;
-                };
-                if self.next() != Some(Token::Colon) {
-                    return None;
-                }
-                let Some(var_type) = self.parse_type() else {
-                    return None;
-                };
-                return match self.next() {
-                    Some(Token::Semicolon) => Some(Statement::Declaration {
-                        name: id,
-                        var_type,
-                        rhs: None,
-                    }),
-                    Some(Token::Eq) => {
-                        let Some(expr) = self.parse_expression() else {
-                            return None;
-                        };
-                        if self.next() != Some(Token::Semicolon) {
-                            return None;
-                        }
-
-                        Some(Statement::Declaration {
+                Some(Token::Let) => {
+                    self.next();
+                    let Some(Token::Ident(id)) = self.next() else {
+                        return None;
+                    };
+                    if self.next() != Some(Token::Colon) {
+                        return None;
+                    }
+                    let Some(var_type) = self.parse_type() else {
+                        return None;
+                    };
+                    return match self.next() {
+                        Some(Token::Semicolon) => Some(Statement::Declaration {
                             name: id,
                             var_type,
-                            rhs: Some(expr),
-                        })
+                            rhs: None,
+                        }),
+                        Some(Token::Eq) => {
+                            let Some(expr) = self.parse_expression() else {
+                                return None;
+                            };
+                            if self.next() != Some(Token::Semicolon) {
+                                return None;
+                            }
+
+                            Some(Statement::Declaration {
+                                name: id,
+                                var_type,
+                                rhs: Some(expr),
+                            })
+                        }
+                        _ => None,
+                    };
+                }
+                Some(Token::If) => {
+                    self.next();
+                    if let Some(cond) = self.parse_expression() // TODO: flatten
+                        && self.next == Some(Token::OCurly)
+                    {
+                        if let Some(block) = self.parse_block() {
+                            return Some(Statement::If {
+                                condition: cond,
+                                contents: block,
+                            });
+                        }
                     }
-                    _ => None,
-                };
-            }
-            Some(Token::If) => {
-                self.next();
-                if let Some(cond) = self.parse_expression() // TODO: flatten
-                    && self.cur_token == Some(Token::OCurly)
-                {
-                    if let Some(block) = self.parse_block() {
-                        return Some(Statement::If {
-                            condition: cond,
-                            contents: block,
-                        });
+                    None
+                }
+                Some(Token::Return) => {
+                    self.next();
+                    if let Some(ret) = self.parse_expression() {
+                        Some(Statement::Return(ret))
+                    } else {
+                        None
                     }
                 }
-                None
-            }
-            Some(Token::Return) => {
-                self.next();
-                if let Some(ret) = self.parse_expression() {
-                    Some(Statement::Return(ret))
-                } else {
+                _ => {
+                    if let Some(expr) = self.parse_expression() {
+                        if self.next() == Some(Token::Semicolon) {
+                            return Some(Statement::Expression(expr));
+                        }
+                    }
                     None
                 }
             }
-            _ => {
-                if let Some(expr) = self.parse_expression() {
-                    if self.next() == Some(Token::Semicolon) {
-                        return Some(Statement::Expression(expr));
-                    }
-                }
-                None
-            }
         }
+    */
+
+    fn consume(&mut self) {
+        self.next = self.tokens.next();
     }
 
+    // I want to be able to call next(), then call a local variable to get the NEXT next token
+    // I also want to be able to call next(), then go back on this decision?
     fn next(&mut self) -> Option<Token> {
-        let tmp = self.cur_token.clone();
-        self.cur_token = self.next_token.clone();
-        self.next_token = self.tokens.next();
+        let tmp = self.next.clone();
+        self.next = self.tokens.next();
+        tmp
+    }
+
+    fn next_skip(&mut self) -> Option<Token> {
+        let tmp = self.tokens.next();
+        self.next = self.tokens.next();
         tmp
     }
 }
