@@ -1,6 +1,6 @@
 ## Notes
 
-Currently not working on any sort of error handling; instead, the program will simply panic whenever anything goes wrong </3
+Currently not working on any sort of error handling; instead, the program will simply panic whenever anything goes wrong :skull: </3
 
 ## Organizational plans
 
